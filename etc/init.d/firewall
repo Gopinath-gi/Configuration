@@ -1,0 +1,66 @@
+#!/bin/sh
+
+firewall_start() {
+  if [ -f /etc/iptables-rules ]; then
+    echo "Loading iptables rules..."
+    /sbin/iptables-restore < /etc/iptables-rules
+    /sbin/modprobe ip_nat_ftp
+    /sbin/modprobe ipt_LOG
+        echo "Enabling IPv4 forwarding..."
+    /sbin/sysctl -w net.ipv4.ip_forward=1 &> /dev/null
+  else
+    echo "/etc/iptables-rules: not found! Skipping..." 2> /dev/stderr
+  fi  
+}
+
+firewall_stop() {
+  echo "Cleaning iptables rules..."
+  /sbin/iptables -t filter -F
+  /sbin/iptables -t filter -Z
+  /sbin/iptables -t nat -F
+  /sbin/iptables -t nat -Z
+  /sbin/iptables -P INPUT ACCEPT
+  /sbin/iptables -P OUTPUT ACCEPT
+  /sbin/iptables -P FORWARD ACCEPT
+  echo "Disabling IPv4 forwarding"
+  /sbin/sysctl -w net.ipv4.ip_forward=0 &> /dev/null
+}
+
+firewall_save() {
+  echo "Saving iptables rules to /etc/iptables-rules"
+  /sbin/iptables-save > /etc/iptables-rules
+}
+
+firewall_reload() {
+  echo "Reloading iptables rules..."
+  /sbin/iptables -t filter -F
+  /sbin/iptables -t nat -F
+  /sbin/iptables -P INPUT ACCEPT
+  /sbin/iptables -P OUTPUT ACCEPT
+  /sbin/iptables -P FORWARD ACCEPT
+  /sbin/modprobe ip_nat_ftp
+  if [ -f /etc/iptables-rules ]; then
+    /sbin/iptables-restore < /etc/iptables-rules
+    #bash /bin/modprobei
+  fi
+}
+
+case "$1" in
+'start')
+  firewall_start
+  ;;
+'stop')
+  firewall_stop
+  ;;
+'save')
+  firewall_save
+  ;;
+'restart')
+  firewall_reload
+  ;;
+'reload')
+  firewall_reload
+  ;;
+*)
+  echo "Usage: $0 {start|stop|restart|reload|save}" > /dev/stderr
+esac
