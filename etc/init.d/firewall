@@ -4,6 +4,7 @@ firewall_start() {
   if [ -f /etc/iptables-rules ]; then
     echo "Loading iptables rules..."
     /sbin/iptables-restore < /etc/iptables-rules
+    ##### Habilita la opción FTP 
     /sbin/modprobe ip_nat_ftp
     /sbin/modprobe ipt_LOG
         echo "Enabling IPv4 forwarding..."

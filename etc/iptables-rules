@@ -1,3 +1,26 @@
+#   This doc is free; you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation; either version 2, or (at your option)
+#   any later version.
+#
+#   This doc is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#   GNU General Public License for more details.
+#
+#   You should have received a copy of the GNU General Public License
+#   along with this program; if not, write to the Free Software Foundation,
+#   Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+#
+# RELEASE: 20140530
+# Autor: Edwin Enrique Flores Bautista
+# email: loquitoslack@gmail.com 
+# blog: loquitoslack.blogspot.com 
+# Fecha: 30-05-12
+#
+
+# Archivo básico de iptables seguridad perimetral, agradecere cualquier mejora y propuesta 
+
 *nat
 :PREROUTING ACCEPT [6034:1048646]
 :POSTROUTING ACCEPT [0:0]
