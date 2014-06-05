@@ -1,1 +1,0 @@
-El presente servicio squid3 aplica a Debian 7.0
