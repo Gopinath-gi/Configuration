@@ -1,0 +1,38 @@
+acl lan { 172.16.7.0/24; };
+options {
+        directory "/var/cache/bind";
+        forwarders {
+		161.132.1.133;
+		161.132.5.133;
+        };
+	forward first;
+	listen-on { 127.0.0.1; 192.168.1.1;};
+	allow-query { localhost; lan; };
+        dnssec-validation auto;
+        auth-nxdomain no;    # conform to RFC1035
+        listen-on-v6 { any; };
+};
+
+logging {
+	channel seguridad {
+		file "/var/log/named/seguridad.log" versions 3 size 2m; 
+		severity info;
+	};
+
+	channel consultas {
+		file "/var/log/named/consultas.log" versions 3 size 5m; 
+		severity debug; 
+	};
+
+	channel general {
+		syslog local4;
+		severity info;
+		print-category yes;
+	};
+
+	category queries { consultas; default_syslog; };
+	category security { seguridad; default_syslog; };
+	category client { general; };
+	category config { general; }; 
+	category resolver { general;};
+};
