@@ -1,0 +1,281 @@
+Samba en centos
+
+Install samba Centos
+---------------------
+yum -y install samba samba-client samba-common
+
+Config Samba in iptables/shorewall 
+----------------------------------
+
+### Añadir iptables 
+iptables -A INPUT -m state --state NEW -m tcp -p tcp --dport 135:139 -j ACCEPT
+iptables -A INPUT -m state --state NEW -m udp -p udp --dport 135:139 -j ACCEPT
+iptables -A INPUT -m state --state NEW -m tcp -p tcp --dport 445 -j ACCEPT
+
+### Guarde los cambios
+service iptables save
+
+### Shorewall.
+
+###Edite el archivo /etc/shorewall/rules:
+
+vi /etc/shorewall/rules
+#ACTION	SOURCE	DEST	PROTO 	DEST		SOURCE
+#				PORT		PORT(S)1
+ACCEPT	all	fw	tcp	135:139,445
+ACCEPT	all	fw	udp	135:139
+
+#ACTION	SOURCE	DEST	PROTO 	DEST		SOURCE
+#				PORT		PORT(S)1
+ACCEPT	loc	fw	tcp	135:139,445
+ACCEPT	loc	fw	udp	135:139
+
+### Actualice los cambios
+service shorewall restart
+
+SELinux y el servicio smb.
+--------------------------
+
+Políticas más comunes y contextos utilizados
+############################################
+
+Permite compartir todos los recursos en modo de sólo lectura
+------------------------------------------------------------
+
+setsebool -P samba_export_all_ro 1
+
+Permite compartir todos los recursos en modo de lectura y escritura:
+setsebool -P samba_export_all_rw 1
+
+Para cualquiera de las dos políticas anteriores: los archivos y directorios a compartir requieren el contexto samba_share_t. Ejemplo:
+
+mkdir -p /srv/samba/ejemplo 
+chcon -t samba_share_t /srv/samba/ejemplo
+
+Ejecute semanage con fcontext como argumento, la opción -a, la opción -t con samba_share_t como argumento y el directorio o archivo de destino como último argumento para establecer este contexto como el predeterminado para éste:
+
+semanage fcontext -a -t samba_share_t /srv/samba/ejemplo
+
+Lo anterior permitirá establecer los contextos establecidos como los predeterminados para cada directorio o archivo definido.
+
+Permitir la escritura como usuario anónimo:
+-------------------------------------------
+setsebool -P allow_smbd_anon_write 1
+
+Lo anterior requiere que los archivos y directorios involucrados tengan el contexto public_content_rw_t. Ejemplo:
+
+mkdir -p /srv/samba/publico
+chown nobody:nobody /srv/samba/publico
+chcon -t public_content_rw_t /srv/samba/publico
+
+Ejecute semanage con fcontext como argumento, la opción -a, la opción -t con public_content_rw_t como argumento y el directorio o archivo de destino como último argumento para establecer este contexto como el predeterminado para éste:
+
+semanage fcontext -a -t public_content_rw_t /srv/samba/ejemplo
+
+Políticas para los directorios de inicio
+########################################
+
+permite compartir a través de Samba los directorios de inicio de los usuarios del anfitrión local
+-------------------------------------------------------------------------------------------------
+
+setsebool -P samba_enable_home_dirs 1
+
+permite utilizar los directorios de inicio de un servidor Samba remoto como los directorios de inicio del anfitrión local:
+
+setsebool -P use_samba_home_dirs 1
+
+Políticas específicas para Controlador Primario de Dominio
+##########################################################
+
+A fin de que SELinux permita al servicio smb crear nuevos directorios de inicio para los usuarios a través de PAM (operación común en Controladores Primarios de Dominio), ejecute:
+
+setsebool -P samba_create_home_dirs 1
+
+Ejecute lo siguiente para permitir el funcionamiento como Controlador Primario de Dominio (PDC, Primary Domain Controler):
+setsebool -P samba_domain_controller 1
+
+Ejecute lo siguiente para permitir el funcionamiento como un organizador de mapa de puertos (portmappper):
+setsebool -P samba_portmapper 1
+
+Ejecute lo siguiente para permitir la ejecución sin confinamiento de programas dentro del directorio /var/lib/samba/scripts:
+setsebool -P samba_run_unconfined 1
+
+Iniciar el servicio y añadirlo al arranque del sistema
+######################################################
+
+Para iniciar los servicios nmb y smb por primera vez, ejecute:
+
+service nmb start
+service smb start
+
+chkconfig nmb on
+chkconfig smb on
+
+El archivo lmhosts
+
+El archivo /etc/samba/lmhosts (lmhosts es acrónimo de LAN Manager hosts) se utiliza de modo similar al archivo /etc/hosts, pero se utiliza específicamente para resolver los nombres NetBIOS. Debe resolver al menos el nombre del anfitrión local.
+
+Edite el archivo /etc/samba/lmhosts:
+
+vi /etc/samba/lmhosts
+Encontrará el siguiente contenido:
+
+127.0.0.1       localhost
+El nombre NetBIOS debe tener un máximo de doce caracteres alfanuméricos. Normalmente se define el nombre corto del servidor asociado a la dirección IP utilizada para acceder a la red de área local. La separación de campos se hace con un tabulador. Ejemplo:
+
+127.0.0.1       localhost
+192.168.70.1     servidor
+Opcionalmente se pueden añadir los nombres y direcciones IP de cada uno de los anfitriones de la red local. Ejemplo:
+
+127.0.0.1        localhost
+192.168.70.1     servidor
+192.168.70.2     joel
+192.168.70.3     blanca
+192.168.70.4     joelalejandro
+192.168.70.5     sergioarmando
+192.168.70.6     reneisaac
+192.168.70.7     finanzas
+
+Opciones principales del archivo smb.conf
+-----------------------------------------
+workgroup
+---------
+Se utiliza para establecer el grupo de trabajo. El valor puede estar indistintamente en mayúsculas o minúsculas y debe tener una longitud del nombre debe ser de hasta 12 caracteres. Ejemplo:
+
+workgroup = soporte 
+
+netbios name
+------------
+Permite establecer arbitrariamente un nombre de anfitrión distinto al detectado automáticamente. Este nombre de anfitrión deberá corresponder con el establecido en el archivo /etc/samba/lmhosts. El valor puede estar indistintamente en mayúsculas o minúsculas y debe tener una longitud del nombre debe ser de hasta 12 caracteres. Ejemplo:
+
+netbios name = servidor
+
+Opción server string.
+--------------------
+Es de carácter informativo para los usuarios de la red de área local. Permite definir una descripción breve acerca del servidor.
+
+server string = Servidor Samba %v en %L
+
+Opción hosts allow
+------------------
+Permite establecer seguridad adicional estableciendo la lista de control de acceso de anfitriones. En ésta se pueden definir direcciones IP individuales o redes que tendrán permiso de acceso hacia el servidor. Si, por mencionar un ejemplo, la red consiste en las anfitriones con dirección IP que van desde 192.168.70.1 hasta 192.168.70.254, el rango de direcciones IP que se definirá en hosts allow será «192.168.70.», de modo tal que sólo se permitirá el acceso dichas máquinas. En el siguiente ejemplo se definen las redes 192.168.70.0/24 y 192.168.37.0/24, especificando los tres primeros octetos de la dirección IP de red, así como cualquier dirección IP de la red 127.0.0.0/8 (retorno del sistema o loopback), siendo necesario definir sólo el primer octeto de dicho segmento:
+
+hosts allow = 127., 192.168.70., 192.168.37.
+
+Opción name resolve order
+-------------------------
+
+De modo predeterminado está ausente de la configuración. Puede añadirla después de la opción mencionada arriba. Define el orden a través del cual se tratará de resolver los nombres NETBIOS. Si utiliza el siguiente ejemplo, se establece que primero se intentará resolver los nombres NETBIOS con la información del archivo /etc/samba/lmhosts, luego el archivo /etc/hosts, luego a través de consultas en el servidor WINS y, si todo lo anterior falla, a través de la dirección IP de difusión de la red local.
+
+name resolve order = lmhosts hosts wins bcast
+Si se va a utilizar un servidor WINS en otro servidor o se está configurando el sistema sólo como cliente SMB, se pueden agilizar las comunicaciones con el resto de los equipos de la red local estableciendo wins como la primera opción para resolución de nombres NETBIOS:
+
+name resolve order = wins lmhosts hosts bcast
+
+**********************************************************************************************************************
+* Nota.																												 * 
+* Los administradores de archivos de los distintos escritorios de Linux requieren que esté presente esta última      * 
+* configuración en el archivo /etc/samba/smb.conf del anfitrión desde el cual se ejecute y que además se especifique * 
+* wins en el orden de resolución de nombres del archivo /etc/nsswitch.conf del anfitrión desde el cual se ejecute. D *
+* otro modo Nautilus mostrará invariablemente un error cada vez que se intente conectar a cualquier servidor de red  *
+* utilizando un nombre NETBIOS.																					     *
+*	 																												 *
+* Guarde el archivo /etc/samba/smb.conf, regrese al intérprete de mandatos y edite el archivo /etc/nsswitch.conf:    * 
+* 																													 *
+* vi /etc/nsswitch.conf  																							 *
+* En CentOS 6 y Red Hat™ Enterprise Linux 6, alrededor de la línea 38, localice lo siguiente:                        *
+* 																													 * 
+* hosts:      files dns 																							 *
+* Añada wins después de dns: 																						 *
+* 																													 *
+* hosts:      files dns wins 																						 *
+* En versiones recientes de Fedora™, openSUSE™ o Ubuntu™ encontrará lo siguiente alrededor de la línea 63:  		 *
+* 																													 *
+* files mdns4_minimal [NOTFOUND=return] dns 
+* Añada wins después de dns:
+* 
+* files mdns4_minimal [NOTFOUND=return] dns wins
+**********************************************************************************************************************
+
+Opción interfaces
+-----------------
+
+Permite establecer desde que interfaces de red del sistema se escucharán peticiones. Samba rechazará todas las conexiones provenientes desde cualquier otra interfaz o dirección IP.
+
+Los valores aceptados para esta opción consisten una lista separada por comas o espacios, con los nombres de las interfaces (lo, eth0, eth1, etc.) y direcciones IP utilizada en una interfaz en particular, con la máscara de sub-red en formato CIDR (Classless Inter-Domain Routing), es decir, expresada en bits. Ejemplo:
+
+interfaces = lo, eth1, 192.168.70.254/25
+
+Opción remote announce
+----------------------
+La opción remote announce se encarga de que el servidor Samba se anuncie a si mismo de forma periódica hacia uno o más grupos de trabajo específicos. Se utiliza cuando se necesita que el servidor Samba aparezca en otros grupos de trabajo existentes en la red de área local. El grupo de trabajo de destino puede estar en donde sea, mientras exista una ruta y sea posible la difusión exitosa de paquetes.
+
+Los valores que pueden ser utilizados son direcciones IP de difusión (broadcast) de la red utilizada (es decir la última dirección IP del segmento de red) y/o nombres de grupos de trabajo. En el siguiente ejemplo se define que el servidor Samba se anuncie a través de las direcciones IP de difusión 192.168.70.127 (que corresponde a la dirección IP de difusión de la red 192.168.70.0/25) y 192.168.2.255 (que corresponde a la dirección IP de difusión de la red 192.168.2.0/24), hacia los grupos de trabajo DOMINIO1 y DOMINIO2 que corresponden a estas redes.
+
+remote announce = 192.168.70.127/DOMINIO1, 192.168.2.255/DOMINIO2
+
+Para aplicar los cambios, reinicie los servicios smb y nmb:
+
+service smb restart
+service nmb restart
+
+Impresoras en Samba
+-------------------
+Las impresoras se comparten de modo predeterminado y sólo hay que realizar algunos ajustes. Si se desea que se pueda acceder hacia la impresora como usuario invitado sin contraseña, añada public = Yes — lo mimso queguest ok = Yes— en la sección de impresoras.
+
+Edite el archivo /etc/samba/smb.conf:
+
+vi /etc/samba/smb.conf
+Localice la sección de impresoras y añada public = Yes a la configuración:
+
+[printers]
+        comment = El comentario que guste.
+        path = /var/spool/samba
+        printable = Yes
+        browseable = No
+	    writable = no
+	    printable = yes
+        public = Yes
+
+Para aplicar los cambios, reinicie el servicio smb:
+
+service smb restart
+
+Para la administración de las colas de impresión, anteriormente se hacía utilizando la opción printer admin, definiendo una lista de usuarios o grupos. Actualmente se hace de manera similar a cómo se hace en en Windows, utilizando políticas, ejecute:
+
+net -S servidor -U root rpc rights grant fulano SePrintOperatorPrivilege
+Compartiendo directorios a través de Samba.
+
+Para los directorios o volúmenes que se irán a compartir, en el mismo archivo de configuración encontrará distintos ejemplos para distintas situaciones particulares. Lo siguinte corresponde a un ejemoplo básico:
+
+[lo_que_sea]
+        comment = Comentario que se le ocurra
+        path = /cualquier/ruta/que/desee/compartir
+Procure que los nombres de los recursos a compartir tengan un máximo de 12 caracteres, utilizando sólo caracteres alfanuméricos de la tabla de caracteres ASCII.
+
+El volumen puede utilizar cualquiera de las siguientes opciones:
+
+Opción		*	Descripción
+---------------------------------------------------------------------------------------------------------------
+guest ok 	* 	Define si se permitirá el acceso como usuario invitado. El valor puede ser Yes o No.
+================================================================================================================
+public      * 	Es un equivalente de guest ok, es decir define si se permitirá el acceso como usuario invitado. 
+			* 	El valor puede ser Yes o No.
+=================================================================================================================
+browseable	*	Define si se permitirá mostrar este recurso en las listas de recursos compartidos. El valor puede ser 			  *   Yes o No.
+=================================================================================================================
+writable	*	Define si se permitirá la escritura. Es la opción contraria de read only. El valor puede ser Yes o No. 
+
+Ejemplos: «writable = Yes» es lo mismo que «read only = No». Obviamente «writable = No» es lo mismo que «read only = Yes»
+====================================================================================================================
+valid users  *  Define los usuarios o grupos, que podrán acceder al recurso compartido. Los valores pueden ser nombres 
+				de usuarios separados por comas o bien nombres de grupo antecedidos por una @. Ejemplo: fulano, mengano, @administradores
+=====================================================================================================================q
+write list
+Define los usuarios o grupos, que podrán acceder con permiso de escritura. Los valores pueden ser nombres de usuarios separados por comas o bien nombres de grupo antecedidos por una @. Ejemplo: fulano, mengano, @administradores
+admin users
+Define los usuarios o grupos, que podrán acceder con permisos administrativos para el recurso. Es decir, podrán acceder hacia el recurso realizando todas las operaciones como super-usuarios. Los valores pueden ser nombres de usuarios separados por comas o bien nombres de grupo antecedidos por una @. Ejemplo: fulano, mengano, @administradores
+directory mask
+Es lo mismo que directory mode. Define qué permiso en el sistema tendrán los subdirectorios creados dentro del recurso. Ejemplos: 1777
+create mask
+Define que permiso en el sistema tendrán los nuevos archivos creados dentro del recurso. Ejemplo: 0644
