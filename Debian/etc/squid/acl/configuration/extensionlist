@@ -1,0 +1,37 @@
+.bat  
+.cab  
+.com  
+.exe  
+.mp3  
+.mpeg 
+.mpg  
+.avi  
+.iso  
+.ogg  # Music file
+.wmf  # Movie file
+.bin # CD ISO image
+.cue # CD ISO image
+.avi      # Movie file
+.flv      # Internet Movies
+.mov    # Movie Files
+.mp1
+.mp2
+.mp3      # Music file
+.mp4    # Mpeg-4 Media
+.mpa
+.mpe
+.mpeg     # Movie file
+.mpg      # Movie file
+.mpga
+.ogm      # Ogg Based Movie Files
+.ram    # Real Audio Media
+.rm       # Real Media Files
+.swa    # MP3 Audio
+.swf      # Shockwave Streaming files
+.wav
+.wma
+.wmv     # Windows Media Video
+.deb
+.rpm
+.bz2
+.gz

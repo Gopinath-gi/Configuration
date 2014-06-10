@@ -1,0 +1,279 @@
+#========================== Squid 3.x Conf ===========================#
+# Opciones de SQUID 3.x
+#----------------------------------------------------------------------
+########## IP:PUERTOS #########
+http_port 127.0.0.1:3128 
+
+######### HOSTNAME ###########
+visible_hostname proxy.dominio.com 
+
+######### URLS NO GUARDADAS EN CACHE ##############
+#hierarchy_stoplist cgi-bin ?
+#acl QUERY urlpath_regex cgi-bin \? \.php \.asp
+acl  nocacheweb dstdomain "/etc/squid3/caching/nocacheweb"
+acl  nocacheich dstdomain "/etc/squid3/caching/nocacheich"
+
+always_direct allow nocacheweb
+always_direct allow nocacheich
+#cache deny nocacheweb QUERY
+
+######### USUARIO Y GRUPO DEL SQUID ###############
+cache_effective_user proxy
+cache_effective_group proxy
+
+######### CORREO ADMINISTRADOR PROXY #############
+cache_mgr proxy@ich.edu.pe
+
+######### DNS SQUID ###########################
+dns_nameservers 127.0.0.1
+dns_retransmit_interval 5 seconds
+dns_timeout 2 minutes
+
+######### URL PAGINA BLOQUEADA ####################
+error_directory /usr/share/squid3/errors/Spanish/
+
+############ MIME ############
+mime_table /etc/squid3/mime.conf
+
+######### Define Cache ########
+coredump_dir /var/spool/squid3
+
+#############  Memoria reservada para cache ########
+cache_mem 512 MB
+#############  Maximo tamano de archivo en cache de memoria
+#----------------------------------------------------------------------
+maximum_object_size_in_memory 128 KB
+#----------------------------------------------------------------------
+# Maximo y minimo tamano de archivos cache en el Disco duro
+#----------------------------------------------------------------------
+maximum_object_size 1 GB
+minimum_object_size 4 KB
+#----------------------------------------------------------------------
+# Sustituir archivos de cache cuando llegue a 96%
+# El limite menor y mayor en porcentaje de uso del espacio designado
+# para la cache. Dentro de esos limites se maneja el reemplazo de 
+# objetos antiguos
+#----------------------------------------------------------------------
+cache_swap_low 92
+cache_swap_high 96
+
+#----------------------------------------------------------------------
+# Total de espacio en HD a ser usado por el cache, numero de carpetas,
+# numero de subcarpetas en cache
+# 100000 = 100 GB
+#----------------------------------------------------------------------
+#cache_dir aufs /var/spool/squid3/cache1 100000  16 256
+cache_dir ufs /var/spool/squid3/cache1/small 8192 16 256
+cache_dir ufs /var/spool/squid3/cache1/medium 16384 8 256
+cache_dir ufs /var/spool/squid3/cache1/large 16384 4 16
+
+######################################################################
+######################## Opciones miscelaneas ########################
+######################################################################
+
+# Numero de rotaciones a realizar en los logs
+logfile_rotate          3
+
+# Aplicacion de redireccion para filtrado
+#url_rewrite_program /usr/bin/squidGuard -c /etc/squid3/squidGuard.conf
+
+# Numero de procesos a ejecutarse del redirector
+#redirect_children       15
+
+# No mostrar la IP desde la que el cliente hace la peticion
+forwarded_for           off
+
+# Variable para la conexion a traves de ocsreports
+ignore_expect_100 on
+
+######################################################################
+#################### Soporte de funciones externas ###################
+######################################################################
+
+# Direccion a ser validada por servidores FTP en conexiones anonimas
+ftp_user                soporte@ich.edu.pe
+
+# Usar FTP pasivo
+ftp_passive             on  
+
+#----------------------------------------------------------------------
+# Log de acessos por el cache o para SARG
+#----------------------------------------------------------------------
+logfile_rotate 7
+
+# Ruta del archivo de registro de consultas de los clientes
+access_log /var/log/squid3/access.log squid 
+
+# Ruta del archivo del desempeño y comportamiento de la cache
+cache_log /var/log/squid3/cache.log
+
+# Muestra errores y depuraciones
+#debug_options ALL,1 33,2
+#debug_options ALL,1 28,9
+
+# Ruta del archivo de registro de los objetos guardados y removidos
+# de la cache
+cache_store_log none
+
+###### OPCIONES CACHE DOMAINS
+refresh_pattern -i \.deb$ 4320 80% 10080
+refresh_pattern -i \.bin$ 4320 80% 10080
+refresh_pattern -i \.rpm$ 4320 80% 10080 
+refresh_pattern -i \.tar\.gz$ 4320 80% 10080
+refresh_pattern -i \.tar\.bz$ 4320 80% 10080
+refresh_pattern -i \.zip$ 4320 80% 10080
+refresh_pattern -i \.bz2$ 4320 80% 10080
+refresh_pattern -i \.tar$ 4320 80% 10080
+refresh_pattern -i \.rar$ 4320 80% 10080
+refresh_pattern -i \.7z$ 4320 80% 10080
+refresh_pattern -i \.mp4$ 4320 80% 10080
+refresh_pattern -i \.flv$ 4320 80% 10080
+refresh_pattern -i \.gz$ 4320 80% 10080
+refresh_pattern -i \.mov$ 4320 80% 10080
+refresh_pattern -i \.mpe?g?$ 4320 80% 10080
+refresh_pattern -i \.mp3$ 4320 80% 10080
+refresh_pattern -i \.mp2$ 4320 80% 10080
+refresh_pattern -i \.qtm?$ 14400 80% 43200
+refresh_pattern -i \.wav$ 14400 80% 43200
+refresh_pattern -i \.avi$ 14400 80% 43200
+refresh_pattern -i \.exe$ 4320 80% 10080
+
+
+###### OPCIONES CACHE WINDOWS
+range_offset_limit 100 MB;
+quick_abort_pct 60;
+
+acl wuCONNECT dstdomain www.update.microsoft.com
+acl wuCONNECT dstdomain sls.microsoft.com
+acl wuCONNECT dstdomain update.microsoft.com
+acl windowsupdate dstdomain "/etc/squid3/windowsupdate"
+
+refresh_pattern -i microsoft\.com/.*\.(cab|exe|msi|msp) 259200 100% 259200 override-expire override-lastmod reload-into-ims ignore-reload ignore-no-cache ignore-private
+refresh_pattern -i windowsupdate\.com/.*\.(cab|exe|msi|msp) 259200 100% 259200 override-expire override-lastmod reload-into-ims ignore-reload ignore-no-cache ignore-private
+refresh_pattern ^ftp:		1440	20%	10080
+refresh_pattern ^gopher:	1440	0%	1440
+refresh_pattern -i (/cgi-bin/|\?) 0	0%	0
+refresh_pattern .		0	20%	4320
+
+####### ACL DE TIEMPO ###########
+## DONDE:
+## M: Lunes
+## T: Martes
+## W: Miercoles
+## H: Jueves
+## F: Viernes
+## A: Sabado
+## S: Domingo
+## Example: http_access deny red tiempo
+acl tiempo      time MTWHFA 7:00-23:00
+
+##### ACCESO A LA CACHE DEL DISCO
+acl manager proto cache_object
+
+##### RESTRICCIONES CHAT ##################
+#Bloquea el gtalk para la web 
+acl gtalk url_regex -i "/etc/squid3/acl/chatmsn/gtalk.msn"
+acl gtalk url_regex -i google.com:5222
+
+# Bloquea Yahoo! Messenger
+acl ym dstdomain "/etc/squid3/acl/chatmsn/yahoo.msn"
+acl ymregex url_regex yupdater.yim ymsgr myspaceim
+
+##### RESTRICCIONES ACTUALIZACIONES ####
+acl updatedst dstdomain "/etc/squid3/acl/denegados/updatesdomain"
+acl updateurl url_regex -i "/etc/squid3/acl/denegados/updatesurl"
+
+###### PERMITIDOS MSN ###########
+acl permitidos-gtalk src "/etc/squid3/acl/permitidos/chats/gtalk.msn"
+acl permitidos-ym src "/etc/squid3/acl/permitidos/chats/yahoo.msn"
+
+###### PERMITIDOS UPDATES #######
+acl permitidos-updates src "/etc/squid3/acl/permitidos/updates/listadoips"
+
+############### Define localhost
+acl localhost src 127.0.0.1/32 ::1
+
+############### Define Subredes Lan ########
+acl subred src 172.16.3.0/24
+acl subred src 192.168.100.0/24
+acl subred src 127.0.0.1
+acl subred src 209.45.92.10
+
+############### Define IP SOPORTES #########
+acl soporte src 172.16.3.10 
+
+############### 2ble ISP ###################
+#### Example:
+#tcp_outgoing_address 209.45.92.18 subred
+#tcp_outgoing_address 192.168.1.100 subred
+
+############### Limita MAX FILE DOWNLOAD UPLOAD
+#reply_body_max_size 50 MB subred
+#request_body_max_size 50 MB subred
+
+####################################
+######## Puertos habilitados #######
+####################################
+acl Ssl_ports port 381 443 563 3128 5222 7666 10000
+acl Safe_ports port 21	##### FTP 
+acl Safe_ports port 25
+acl Safe_ports port 110
+acl Safe_ports port 381
+acl Safe_ports port 143
+acl Safe_ports port 583
+acl Safe_ports port 587
+acl Safe_ports port 993 
+acl Safe_ports port 995
+acl Safe_ports port 80
+acl Safe_ports port 443
+acl Safe_ports port 563
+acl Safe_ports port 631  #### Servidor Impresion CUPS
+acl Safe_ports port 1935 #### OPEnmeeting
+acl Safe_ports port 1938 #### OPEnmeeting
+acl Safe_ports port 3128 #### PROXY
+acl Safe_ports port 5080 ##### OPEnmeeting
+acl Safe_ports port 5222 ##### GTALK
+acl Safe_ports port 7666 ##### OPENFIRE
+acl Safe_ports port 7777 # ESSALUD 
+acl Safe_ports port 7778 # RENIEC
+acl Safe_ports port 7779 # # ESSALUD
+acl Safe_ports port 8443 ############ VLC 
+acl Safe_ports port 8080 # # # # # # tomcat 
+acl Safe_ports port 8585 ############inictel
+acl Safe_ports port 9081 ####poder judicial
+acl Safe_ports port 10000 # # # # # # webmin
+acl Safe_ports port 11371 # # # # # # key.server.ubuntu
+acl CONNECT method CONNECT
+
+##### Define Extensiones Delay Pools 
+acl extensionlist urlpath_regex -i "/etc/squid3/acl/configuration/extensionlist"
+
+##### Definir SKYPE
+acl numeric_IPs dstdom_regex ^(([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)|(\[([0-9af]+)?:([0-9af:]+)?:([0-9af]+)?\])):443
+acl Skype_UA browser ^skype
+
+http_access allow CONNECT subred numeric_IPS Skype_UA
+http_access allow manager localhost
+http_access deny manager
+http_access allow CONNECT wuCONNECT subred
+http_access deny windowsupdate !permitidos-updates 
+http_access deny !Safe_ports
+http_access deny CONNECT !Ssl_ports
+http_access deny gtalk !permitidos-gtalk
+http_access allow localhost
+http_access allow subred
+http_access deny all
+
+################## Delay POOLS  ####################
+#delay_pools 1
+#delay_class 1 3
+#delay_parameters 1 -1/-1 -1/-1 89600/89600
+#delay_access 1 allow extensionlist subred !soporte
+
+################## Disk Caching ####################
+acl raptor_lst url_regex -i "/etc/raptor/raptor.lst"
+cache deny raptor_lst
+cache_peer 172.16.3.1 parent 8080 0 proxy-only no-digest
+dead_peer_timeout 2 seconds
+cache_peer_access 172.16.3.1 allow raptor_lst
+cache_peer_access 172.16.3.1 deny all
