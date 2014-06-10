@@ -1,0 +1,167 @@
+fuentes: 
+http://www.alcancelibre.org/staticpages/index.php/como-samba-basico
+http://www.cyberciti.biz/faq/redhat-install-semanage-selinux-command-rpm/
+http://samba.2283325.n4.nabble.com/Testparm-quot-rlimit-max-rlimit-max-8192-below-minimum-Windows-limit-16384-quot-td2448758.html
+####################################################################################################################
+
+### install and config samba in centos
+### Compartir directorios en samba con CentOS Linux y Selinux
+
+# yum -y install samba samba-client samba-common
+
+# groupadd soporte
+# groupadd coordinacion
+# groupadd invitado
+
+# useradd -s /bin/false -g soporte -G soporte soporte
+# useradd -s /bin/false -g invitado -G invitado invitado 
+# useradd -s /bin/false -g coordinacion -G coordinacion coordinacion  
+
+# smbpasswd -a soporte 
+# smbpasswd -a invitado 
+# smbpasswd -a coordinacion
+
+vim /etc/sysconfig/iptables
+### Añadir iptables 
+-A INPUT -m state --state NEW -m tcp -p tcp --dport 135:139 -j ACCEPT
+-A INPUT -m state --state NEW -m udp -p udp --dport 135:139 -j ACCEPT
+-A INPUT -m state --state NEW -m tcp -p tcp --dport 445 -j ACCEPT
+
+service iptables restart
+
+#### Añadir políticas 
+setsebool -P samba_export_all_rw 1
+
+#### Crear los directorios 
+mkdir -p /srv/samba/ejemplo
+mkdir -p /srv/samba/ejemplo/{tarea,instaladores}
+chcon -t samba_share_t /srv/samba/ejemplo 
+
+semanage fcontext -a -t samba_share_t /srv/samba/ejemplo
+*******************************************************************
+NOTA
+[root@instaladores ~]# semanage fcontext -a -t samba_share_t /srv/samba/ejemplo
+-bash: semanage: no se encontró la orden
+
+yum provides /usr/sbin/semanage
+yum whatprovides /usr/sbin/semanage
+yum -y install policycoreutils-python
+*******************************************************************
+
+#### Añadir acl al archivo fstab
+/dev/mapper/vg_instaladores-lv_root /  ext4    defaults,acl        1 1
+
+#### aplicar cambios 
+mount -o remount / 
+
+#### aplicar acls 
+setfacl -R -m u:soporte:rwx,u:invitado:r-x,g:invitado:r /srv/samba/ejemplo/instaladores
+setfacl -R -m u:coordinacion:rwx /srv/samba/ejemplo/tarea 
+setfacl -dRm u:soporte:rw,u:invitado:r-x,g:invitado:r /srv/samba/ejemplo/instaladores
+setfacl -dRm u:coordinacion:rwx /srv/samba/ejemplo/tarea 
+
+#### Iniciar el servicio 
+
+service nmb start
+service smb start
+
+chkconfig nmb on
+chkconfig smb on
+
+##### configurando samba
+mv -v /etc/samba/smb.conf /etc/samba/smb.conf.bk
+
+vim /etc/samba/smb.conf 
+[global]
+security = user
+netbios name = fileserver
+netbios aliases = samba servidor
+server string = Servidor Samba %v
+workgroup = Soporte
+log file = /var/log/samba/samba.log
+log level = 2
+max log size = 2000
+interfaces = lo, eth0, 172.16.7.132/27
+
+[tarea]
+path = /srv/samba/ejemplo/tarea
+browseable = yes
+comment = Carpeta_Compartida
+valid users = soporte, coordinacion, @coordinacion
+invalid users = invitado
+admin users = soporte, coordinacion
+writeable = yes
+write list = soporte, coordinacion
+public = no
+create mask = 0750
+directory mask = 0750
+force group = coordinacion
+force user = coordinacion
+hosts allow = 172.16.7.0/24, 172.16.64.0/24
+hosts deny = 0.0.0.0/0
+nt acl support = yes
+
+[instaladores]
+path = /srv/samba/ejemplo/instaladores
+browseable = yes
+comment = Programas
+valid users = soporte, invitado, @soporte
+admin users = soporte, @soporte
+writeable = yes
+read list = invitado
+write list = soporte, @soporte
+public = no
+create mask = 0750
+directory mask = 0750
+force group = soporte
+force user = soporte
+nt acl support = yes
+
+[printers]
+comment = Printer Server 
+path = /var/spool/samba
+printable = Yes
+browseable = No
+writable = no
+printable = yes
+public = Yes
+
+# Comprobar que todo este correctamente configurado 
+smbstatus
+
+Nota
+rlimit_max increasing rlimit_max (1024) to minimum windows limit (16384)+centos
+###############################################################################
+Processing section "[tarea]"
+Processing section "[instaladores]"
+Processing section "[printers]"
+
+Samba version 3.6.9-168.el6_5
+PID     Username      Group         Machine
+-------------------------------------------------------------------
+
+Service      pid     machine       Connected at
+-------------------------------------------------------
+
+No locked files
+
+vim /etc/security/limits.conf
+* - nofile 16384 
+
+reboot -f 
+
+# Comprobar que todo este correctamente configurado 
+smbstatus
+Processing section "[tarea]"
+Processing section "[instaladores]"
+Processing section "[printers]"
+
+Samba version 3.6.9-168.el6_5
+PID     Username      Group         Machine
+-------------------------------------------------------------------
+
+Service      pid     machine       Connected at
+-------------------------------------------------------
+
+No locked files
+

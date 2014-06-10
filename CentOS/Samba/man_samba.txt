@@ -173,24 +173,24 @@ Si se va a utilizar un servidor WINS en otro servidor o se está configurando el
 name resolve order = wins lmhosts hosts bcast
 
 **********************************************************************************************************************
-* Nota.																												 * 
-* Los administradores de archivos de los distintos escritorios de Linux requieren que esté presente esta última      * 
-* configuración en el archivo /etc/samba/smb.conf del anfitrión desde el cual se ejecute y que además se especifique * 
-* wins en el orden de resolución de nombres del archivo /etc/nsswitch.conf del anfitrión desde el cual se ejecute. D *
-* otro modo Nautilus mostrará invariablemente un error cada vez que se intente conectar a cualquier servidor de red  *
-* utilizando un nombre NETBIOS.																					     *
-*	 																												 *
-* Guarde el archivo /etc/samba/smb.conf, regrese al intérprete de mandatos y edite el archivo /etc/nsswitch.conf:    * 
-* 																													 *
-* vi /etc/nsswitch.conf  																							 *
-* En CentOS 6 y Red Hat™ Enterprise Linux 6, alrededor de la línea 38, localice lo siguiente:                        *
-* 																													 * 
-* hosts:      files dns 																							 *
-* Añada wins después de dns: 																						 *
-* 																													 *
-* hosts:      files dns wins 																						 *
-* En versiones recientes de Fedora™, openSUSE™ o Ubuntu™ encontrará lo siguiente alrededor de la línea 63:  		 *
-* 																													 *
+* Nota.																												 
+* Los administradores de archivos de los distintos escritorios de Linux requieren que esté presente esta última      
+* configuración en el archivo /etc/samba/smb.conf del anfitrión desde el cual se ejecute y que además se especifique  
+* wins en el orden de resolución de nombres del archivo /etc/nsswitch.conf del anfitrión desde el cual se ejecute. De 
+* otro modo Nautilus mostrará invariablemente un error cada vez que se intente conectar a cualquier servidor de red  
+* utilizando un nombre NETBIOS.
+*	 		
+* Guarde el archivo /etc/samba/smb.conf, regrese al intérprete de mandatos y edite el archivo /etc/nsswitch.conf:
+* 			
+* vi /etc/nsswitch.conf  																							
+* En CentOS 6 y Red Hat Enterprise Linux 6, alrededor de la línea 38, localice lo siguiente:                   
+* 			
+* hosts:      files dns
+
+* Añada wins después de dns: 						
+* hosts:      files dns wins 																						 
+* En versiones recientes de Fedora™, openSUSE™ o Ubuntu™ encontrará lo siguiente alrededor de la línea 63: 
+* 												
 * files mdns4_minimal [NOTFOUND=return] dns 
 * Añada wins después de dns:
 * 
@@ -255,27 +255,36 @@ Procure que los nombres de los recursos a compartir tengan un máximo de 12 cara
 
 El volumen puede utilizar cualquiera de las siguientes opciones:
 
-Opción		*	Descripción
+Opción	     * Descripción
 ---------------------------------------------------------------------------------------------------------------
-guest ok 	* 	Define si se permitirá el acceso como usuario invitado. El valor puede ser Yes o No.
-================================================================================================================
-public      * 	Es un equivalente de guest ok, es decir define si se permitirá el acceso como usuario invitado. 
-			* 	El valor puede ser Yes o No.
-=================================================================================================================
-browseable	*	Define si se permitirá mostrar este recurso en las listas de recursos compartidos. El valor puede ser 			  *   Yes o No.
-=================================================================================================================
-writable	*	Define si se permitirá la escritura. Es la opción contraria de read only. El valor puede ser Yes o No. 
-
+guest ok     * Define si se permitirá el acceso como usuario invitado. El valor puede ser Yes o No.
+======================================================================================================================
+public       * Es un equivalente de guest ok, es decir define si se permitirá el acceso como usuario invitado. 
+	     * El valor puede ser Yes o No.
+======================================================================================================================
+browseable   * Define si se permitirá mostrar este recurso en las listas de recursos compartidos. El valor puede 
+             * ser Yes o No.
+======================================================================================================================
+writable     * Define si se permitirá la escritura. Es la opción contraria de read only. El valor puede ser Yes 
+             * o No. 
 Ejemplos: «writable = Yes» es lo mismo que «read only = No». Obviamente «writable = No» es lo mismo que «read only = Yes»
-====================================================================================================================
+======================================================================================================================
 valid users  *  Define los usuarios o grupos, que podrán acceder al recurso compartido. Los valores pueden ser nombres 
-				de usuarios separados por comas o bien nombres de grupo antecedidos por una @. Ejemplo: fulano, mengano, @administradores
-=====================================================================================================================q
-write list
-Define los usuarios o grupos, que podrán acceder con permiso de escritura. Los valores pueden ser nombres de usuarios separados por comas o bien nombres de grupo antecedidos por una @. Ejemplo: fulano, mengano, @administradores
-admin users
-Define los usuarios o grupos, que podrán acceder con permisos administrativos para el recurso. Es decir, podrán acceder hacia el recurso realizando todas las operaciones como super-usuarios. Los valores pueden ser nombres de usuarios separados por comas o bien nombres de grupo antecedidos por una @. Ejemplo: fulano, mengano, @administradores
-directory mask
-Es lo mismo que directory mode. Define qué permiso en el sistema tendrán los subdirectorios creados dentro del recurso. Ejemplos: 1777
-create mask
-Define que permiso en el sistema tendrán los nuevos archivos creados dentro del recurso. Ejemplo: 0644
+             *  de usuarios separados por comas o bien nombres de grupo antecedidos por una @. Ejemplo: fulano,
+             *  mengano, @administradores
+======================================================================================================================
+write list   * Define los usuarios o grupos, que podrán acceder con permiso de escritura. Los valores pueden ser 
+             * nombres de usuarios separados por comas o bien nombres de grupo antecedidos por una @. Ejemplo: fulano, 
+             * mengano, @administradores
+======================================================================================================================
+admin users  * Define los usuarios o grupos, que podrán acceder con permisos administrativos para el recurso. Es 
+             * decir, podrán acceder hacia el recurso realizando todas las operaciones como super-usuarios. Los 
+             * valores pueden ser nombres de usuarios separados por comas o bien nombres de grupo antecedidos por una 
+             * @. Ejemplo: fulano, mengano, @administradores
+======================================================================================================================
+directory mask * Es lo mismo que directory mode. Define qué permiso en el sistema tendrán los subdirectorios creados 
+               * dentro del recurso. Ejemplos: 1777
+======================================================================================================================
+create mask    * Define que permiso en el sistema tendrán los nuevos archivos creados dentro del recurso. 
+Ejemplo: 0644
+======================================================================================================================
