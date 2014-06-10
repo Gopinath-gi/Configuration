@@ -1,0 +1,13 @@
+$ORIGIN facebook.com.
+$TTL 2h
+@       SOA     ns1.facebook.com. admin.facebook.com. (
+                                        2012121800;
+                                        30m;
+                                        3m; 
+                                        4w; 
+                                        1h )
+        NS      ns1 
+
+facebook.com.   A       209.45.92.8    
+ns1     A       209.45.92.8
+www     A       209.45.92.8

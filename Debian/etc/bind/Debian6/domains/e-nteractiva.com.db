@@ -1,0 +1,15 @@
+$ORIGIN e-nteractiva.com.
+$TTL 2h
+@       SOA     ns1.e-nteractiva.com. admin.e-nteractiva.com. (
+                                        2012121800;
+                                        30m;
+                                        3m;
+                                        4w;
+                                        1h )
+        NS      ns1
+
+e-nteractiva.com.  A       67.222.20.123
+ns1     A       209.45.92.8
+www     A       67.222.20.123
+denied  A       209.45.92.8
+ftp	A	172.16.3.1
