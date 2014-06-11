@@ -55,10 +55,10 @@ yum -y install policycoreutils-python
 mount -o remount / 
 
 #### aplicar acls 
-setfacl -R -m u:soporte:rwx,u:invitado:r-x,g:invitado:r /srv/samba/ejemplo/instaladores
-setfacl -R -m u:coordinacion:rwx /srv/samba/ejemplo/tarea 
-setfacl -dRm u:soporte:rw,u:invitado:r-x,g:invitado:r /srv/samba/ejemplo/instaladores
-setfacl -dRm u:coordinacion:rwx /srv/samba/ejemplo/tarea 
+setfacl -R -m u:soporte:rwX,u:invitado:r-x,g:invitado:r /srv/samba/ejemplo/instaladores
+setfacl -R -m u:coordinacion:rwX /srv/samba/ejemplo/tarea 
+setfacl -dRm u:soporte:rwX,u:invitado:r-x,g:invitado:r /srv/samba/ejemplo/instaladores
+setfacl -dRm u:coordinacion:rwX /srv/samba/ejemplo/tarea 
 
 #### Iniciar el servicio 
 
