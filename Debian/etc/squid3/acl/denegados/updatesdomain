@@ -61,11 +61,13 @@
 .dl.google.com
 .ftp.mozilla.org
 .download-installer.cdn.mozilla.net
+.download.mozilla.org
 
 #### Market Movil ###
 .android.clients.google.com
 .wscont.apps.microsoft.com
 .apple.com
+.download.skype.com
 
 #### IDES #######
 .dlc.sun.com.edgesuite.net

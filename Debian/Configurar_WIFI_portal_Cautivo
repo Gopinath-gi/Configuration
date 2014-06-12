@@ -1,0 +1,9 @@
+Configurar WIFI portal Cautivo
+------------------------------
+
+apt-get install dpkg-dev debhelper libtool libssl-dev libcurl4-openssl-dev
+wget -P /tmp 'http://ap.coova.org/chilli/coova-chilli-1.2.8.tar.gz'
+
+########################################################################
+wget -c "http://www.chillispot.org/download/chillispot_1.0_i386.deb"
+
