@@ -1,7 +1,58 @@
 install vsftpd in ubuntu server 14.04 
 #####################################
 apt-get install vsftpd 
+local_enable=YES
+write_enable=YES
+local_umask=022
 write_enable=YES
 local_umask=022
 chroot_local_user=YES
 allow_writeable_chroot=YES
+
+### Permite evadir el chroot para otros usuarios 
+------------------------------------------------
+#chroot_list_enable=YES
+#chroot_list_file=/etc/vsftpd.chroot_list
+
+#### Evita el login a través de la consola tanto para la shell
+#### como para el ftp 
+useradd -m john -s /usr/sbin/nologin
+passwd john
+
+Chroot ssh with vsftp
+#####################
+
+apt-get install openssh-server
+
+añada la linea en /etc/vsftpd.conf 
+ssl_enable=Yes
+
+crear el grupo: 
+groupadd ftpaccess
+
+/etc/ssh/sshd_config 
+Busque la linea 
+Subsystem sftp /usr/lib/openssh/sftp-server
+
+y reemplacela por: 
+Subsystem sftp internal-sftp
+Match group ftpaccess
+ChrootDirectory %h
+X11Forwarding no
+AllowTcpForwarding no
+ForceCommand internal-sftp
+
+Comente la siguiente linea 
+#UsePAM yes
+
+service vsftpd restart
+service ssh restart
+
+useradd -m john -g ftpaccess -s /usr/sbin/nologin
+passwd john
+chown root /home/john
+mkdir /home/john/www
+chown john:ftpaccess /home/john/www
+
+Conectarse por filezilla a travez del usuario Jhon ( el cual estara enjaulado y sus datos estaran encriptado)
+
