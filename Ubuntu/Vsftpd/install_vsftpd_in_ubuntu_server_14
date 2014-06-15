@@ -1,0 +1,7 @@
+install vsftpd in ubuntu server 14.04 
+#####################################
+apt-get install vsftpd 
+write_enable=YES
+local_umask=022
+chroot_local_user=YES
+allow_writeable_chroot=YES
