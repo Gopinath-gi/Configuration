@@ -56,3 +56,6 @@ chown john:ftpaccess /home/john/www
 
 Conectarse por filezilla a travez del usuario Jhon ( el cual estara enjaulado y sus datos estaran encriptado)
 
+Si deseas conectarte por ssh y sftp para ejecutar comandos y estar enjaulado
+elimina el usuario john del grupo ftpaccess
+
