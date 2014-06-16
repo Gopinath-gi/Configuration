@@ -1,0 +1,32 @@
+############# config ##################
+#
+set base_path    /var/spool/apt-mirror
+#
+set mirror_path  $base_path/mirror
+set skel_path    $base_path/skel
+set var_path     $base_path/var
+set cleanscript $var_path/clean.sh
+# set defaultarch  <running host architecture>
+set postmirror_script $var_path/postmirror.sh
+set run_postmirror 0
+set nthreads     10
+set limit_rate 800k
+set _tilde 0
+#
+############# end config ##############
+
+deb-amd64 http://ftp.us.debian.org/debian/ wheezy main contrib non-free
+deb-amd64 http://security.debian.org/ wheezy/updates main contrib non-free
+deb-amd64 http://ftp.us.debian.org/debian/ wheezy-updates main contrib non-free
+deb-amd64 http://ftp.us.debian.org/debian/ wheezy-backports main contrib non-free
+
+deb-i386 http://ftp.us.debian.org/debian/ wheezy main contrib non-free
+deb-i386 http://security.debian.org/ wheezy/updates main contrib non-free
+deb-i386 http://ftp.us.debian.org/debian/ wheezy-updates main contrib non-free
+deb-i386 http://ftp.us.debian.org/debian/ wheezy-backports main contrib non-free
+
+deb-i386 http://pe.archive.ubuntu.com/ubuntu/ trusty main restricted
+deb-amd64 http://pe.archive.ubuntu.com/ubuntu/ trusty main restricted
+
+
+clean http://ftp.us.debian.org/debian
