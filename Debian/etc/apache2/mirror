@@ -1,0 +1,18 @@
+<VirtualHost *:80>
+        Servername centos.ich.pe
+        DocumentRoot /var/www/mirror
+        <Directory /var/www/mirror/>
+                Options Indexes FollowSymLinks MultiViews
+                AllowOverride None
+                Order allow,deny
+                allow from all
+        </Directory>
+
+        ErrorLog ${APACHE_LOG_DIR}/centos.ich.pe_error.log
+        LogLevel warn
+        CustomLog ${APACHE_LOG_DIR}/centos.ich.pe_access.log combined
+</VirtualHost>
+
+/etc/apache/apache2.conf
+# Include the virtual host configurations:
+Include sites-enabled/

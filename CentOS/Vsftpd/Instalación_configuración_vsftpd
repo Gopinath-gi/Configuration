@@ -1,0 +1,384 @@
+Instalación y configuración de vsftpd 
+-------------------------------------
+# RELEASE: 20140618
+# Autor: Joel Barrios Dueñas
+# Correo electrónico: darkshram en gmail punto com
+# Sitio de Red: http://www.alcancelibre.org/
+# Jabber ID: darkshram@jabber.org
+# Creative Commons Reconocimiento-NoComercial-CompartirIgual 2.1
+# © 1999-2014 Joel Barrios Dueñas. Usted es libre de copiar, distribuir y comunicar públicamente la obra y hacer obras derivadas bajo las condiciones siguientes: # a) Debe reconocer y citar al autor original. b) No puede utilizar esta obra para fines comerciales (incluyendo su publicación, a través de cualquier medio, por # entidades con fines de lucro). c) Si altera o transforma esta obra o genera una obra derivada, sólo puede distribuir la obra generada bajo una licencia 
+# idéntica a ésta. Al reutilizar o distribuir la obra, tiene que dejar bien claro los términos de la licencia de esta obra. Alguna de estas condiciones puede no 
+# aplicarse si se obtiene el permiso del titular de los derechos de autor. Los derechos derivados de usos legítimos u otras limitaciones no se ven afectados por 
+# lo anterior. Licencia completa en castellano. La información contenida en este documento y los derivados de éste se proporcionan tal cual son y los autores no 
+# asumirán responsabilidad alguna si el usuario o lector, hace mal uso de éstos.
+
+Introducción.
+
+Acerca del protocolo FTP.
+
+FTP (File Transfer Protocol) o Protocolo de Transferencia de Archivos (o archivos informáticos) es uno de los protocolos estándar más utilizados en Internet siendo el más idóneo para la transferencia de grandes bloques de datos a través de redes que soporten TCP/IP. El servicio utiliza los puertos 20 y 21, exclusivamente sobre TCP. El puerto 20 es utilizado para el flujo de datos entre cliente y servidor. El puerto 21 es utilizando para el envío de órdenes del cliente hacia el servidor. Prácticamente todos los sistemas operativos y plataformas incluyen soporte para FTP, lo que permite que cualquier computadora conectada a una red basada sobre TCP/IP pueda hacer uso de este servicio a través de un cliente FTP.
+
+Existen dos métodos, el modo activo y el modo pasivo.
+
+URL: http://tools.ietf.org/html/rfc959
+
+Modo activo.
+
+En este modo, el cliente crea una conexión de datos a través del puerto 20 del servidor, mientras que en el cliente asocia esta conexión desde un puerto aleatorio entre 1024 y 65535, enviando PORT para indicar al servidor el puerto a utilizar para la transferencia de datos. Tiene como desventaja que el cliente FTP debe estar dispuesto a aceptar cualquier conexión de entrada asociada a puertos entre 1024 y 65535, lo que significa que el cliente tendría que estar detrás de un muro cortafuegos que acepte establecer conexiones entrantes en este rango de puertos o bien acceder hacia Internet sin un muro cortafuegos de por medio, lo que evidentemente implica un enorme riesgo de seguridad. El modo activo sólo es conveniente en la ausencia de un muro cortafuegos entre el servidor y el cliente, como ocurre en los escenarios de una red de área local.
+
+Modo pasivo.
+
+Fue creado como una alternativa al problema que representa el modo activo. A diferencia de éste último, el modo pasivo envía PASV en lugar PORT a través del puerto de control del servidor. Éste devuelve como respuesta el número de puerto a través del cual debe conectarse el cliente para hacer la transferencia de datos. El servidor puede elegir al azar cualquier puerto entre 1024 y 65535 o bien el rango de puertos determinado por el administrador del sistema. En el caso de Vsftpd, se puede definir un rango arbitrario de puertos para conexiones pasivas utilizando las opciones pasv_min_port y pasv_max_port. Éste es el método recomendado para servidores de acceso público.
+
+Acerca del protocolo FTPS.
+
+FTPS —también referido como FTP/SSL— es la forma de designar diferentes métodos a través de las cuales se pueden realizar transferencias de archivos seguras a través del protocolo FTP utilizando SSL o TLS. Son métodos muy diferentes a los del protocolo SFTP (SSH File Transfer Protocol).
+
+Existen dos diferentes métodos para realizar una conexión SSL/TLS a través de FTP. La primera y más antigua es a través de FTPS Implícito (Implicit FTPS), que consiste en cifrar la sesión completa a través de los puertos 990 (FTPS) y 998 (FTPS Data), sin permitir negociación con el cliente, el cual está obligado a conectarse directamente al servidor FTPS con el inicio de sesión SSL/TLS. El segundo método, que es el recomendado por el RFC 4217 y el utilizado por vsftpd, es FTPS Explícito (Explicit FTPS o FTPES), donde el cliente realiza la conexión normal a través del puerto 21 y permitiendo negociar, de manera opcional, una conexión TLS.
+
+Acerca de RSA.
+
+RSA, acrónimo de los apellidos de sus autores, Ron Rivest, Adi Shamir y Len Adleman, es un algoritmo para cifrar claves públicas, el cual fue publicado en 1977 y patentado 1983, en EE.UU., por el Instituto Tecnológico de Michigan (MIT). RSA es utilizado en todo el mundo para los protocolos destinados para el comercio electrónico.
+
+URL: http://es.wikipedia.org/wiki/RSA
+
+Acerca de OpenSSL.
+
+OpenSSL es una implementación libre, de código fuente abierto, de los protocolos SSL (Secure Sockets Layer o Nivel de Zócalo Seguro) y TLS (Transport Layer Security o Seguridad para Nivel de Transporte). Está basado sobre el extinto proyecto SSLeay, iniciado por Eric Young y Tim Hudson, hasta que éstos comenzaron a trabajar para la división de seguridad de EMC Corporation.
+
+URL: http://www.openssl.org/
+
+Acerca de X.509.
+
+X.509 es un estándar ITU-T (estandarización de Telecomunicaciones de la International Telecommunication Union) para infraestructura de claves públicas (PKI o Public Key Infrastructure). Entre otras cosas, establece los estándares para certificados de claves públicas y un algoritmo, para validación de ruta de certificación. Este último se encarga de verificar que la ruta de un certificado sea válida bajo una infraestructura de clave pública determinada. Es decir, desde el certificado inicial, pasando por certificados intermedios, hasta el certificado de confianza emitido por una Autoridad Certificadora (CA o Certification Authority).
+
+URL: http://es.wikipedia.org/wiki/X.509
+Acerca de vsftpd.
+
+Vsftpd (Very Secure FTP Daemon) es un equipamiento lógico utilizado para implementar servidores de archivos a través del protocolo FTP. Se distingue principalmente porque sus valores predeterminados son muy seguros y por la sencillez para su configuración cuando se le es comparado con otras alternativas como ProFTPD y Wu-ftpd. En la actualidad se estima que vsftpd podría ser quizá el servidor FTP más seguro del mundo.
+
+URL: http://vsftpd.beasts.org/
+
+Equipamiento lógico necesario.
+
+Instalación a través de yum.
+
+Ejecute lo siguiente desde una terminal si utiliza CentOS, Fedora™ o Red Hat™ Enterprise Linux:
+
+yum -y install vsftpd
+Archivos de configuración.
+
+/etc/vsftpd/chroot_list
+Lista que definirá usuarios a enjaular o no a enjaular, dependiendo de la configuración.
+/etc/vsftpd/vsftpd.conf
+Archivo de configuración de VSFTPD.
+El archivo /etc/vsftpd/chroot_list es inexistente, por lo cual es conveniente crearlo antes de comenzar a trabajar con la configuración. Por favor ejecute lo siguiente antes de continuar:
+
+touch /etc/vsftpd/chroot_list
+Activar, iniciar, detener y reiniciar el servicio.
+
+Ejecute lo siguiente para activar el servicio en todos los niveles de ejecución:
+
+chkconfig vsftpd on
+Ejecute lo siguiente para iniciar por primera vez el servicio:
+
+service vsftpd start
+Ejecute lo siguiente para reiniciar el servicio o bien hacer que los cambios hechos a la configuración surtan efecto:
+
+service vsftpd restart
+Ejecute lo siguiente para detener el servicio:
+
+service vsftpd stop
+Modificaciones necesarias en el muro cortafuegos.
+
+Es necesario abrir los puerto 20 y 21, por TCP (FTP-DATA y FTP, respectivamente) y el rango de puertos para conexiones pasivas que se haya definido.
+
+Servicio iptables.
+
+Ejecute lo siguiente para anexar las reglas de iptables correspondientes:
+
+iptables -A INPUT -m state --state NEW -m tcp -p tcp --dport 20 -j ACCEPT
+iptables -A INPUT -m state --state NEW -m tcp -p tcp --dport 21 -j ACCEPT
+iptables -A INPUT -m state --state NEW -m tcp -p tcp --dport 30300:30309 -j ACCEPT
+Ejecute lo siguiente para guardar los cambios:
+
+service iptables save
+O bien añada lo siguiente al archivo /etc/sysconfig/iptables:
+
+-A INPUT -m state --state NEW -m tcp -p tcp --dport 20 -j ACCEPT
+-A INPUT -m state --state NEW -m tcp -p tcp --dport 21 -j ACCEPT
+-A INPUT -m state --state NEW -m tcp -p tcp --dport 30300:30309 -j ACCEPT
+Y reinicie el servicio iptables:
+
+service iptables restart
+Shorewall.
+
+Edite el archivo /etc/shorewall/rules:
+
+vi /etc/shorewall/rules
+Las reglas corresponderían a algo similar a lo siguiente, permitiendo el acceso hacia el servicio FTP desde cualquier zona del muro cortafuegos:
+
+#ACTION	SOURCE	DEST	PROTO 	DEST		SOURCE
+#				PORT		PORT(S)1
+ACCEPT	all	fw	tcp	20,21,30300:30309
+Reinicie el servicio para aplicar los cambios:
+
+service shorewall restart
+Procedimientos.
+
+SELinux y el servicio vsftpd.
+
+SELinux controla varias funciones de el servicio vsftpd incrementando el nivel de seguridad de éste.
+
+Ejecute lo siguiente para permitir que el servidor FTP pueda asociarse a cualquier puerto sin reservar al funcionar en modo pasivo:
+
+setsebool -P ftpd_use_passive_mode 1
+Ejecute lo siguiente para permitir que los usuarios anónimos puedan realizar procesos de escritura sobre el sistema de archivos:
+
+setsebool -P allow_ftpd_anon_write 1
+Si se necesita permitir el acceso utilizando las cuentas de usuarios del anfitrión local, a fin de que éstos puedan acceder a sus directorio de inicio, se debe habilitar la política ftp_home_dir:
+
+setsebool -P ftp_home_dir 1
+Ejecute lo siguiente para hacer que SELinux permita acceder a los usuarios locales al resto del sistema de archivos:
+
+setsebool -P allow_ftpd_full_access 1
+Ejecute lo siguiente para permitir que el servicio vsftpd pueda hacer uso de sistemas de archivos remotos a través de CIFS (Samba) o NFS y que serán utilizados para compartir a través del servicio:
+
+setsebool -P allow_ftpd_use_cifs 1
+setsebool -P allow_ftpd_use_nfs 1
+
+Nota.
+Lo siguiente sólo aplica para CentOS 5 y Red Hat™ Enterprise Linux 5.
+
+Ejecute lo siguiente para eliminar por completo la protección que brinda SELinux al servicio vsftpd y que éste funcione normalmente sin esta valiosa protección, haciendo que todo lo anteriormente descrito en esta sección pierda sentido:
+
+setsebool -P ftpd_disable_trans 1
+Esta política es inexistente en CentOS 6 y Red Hat™ Enterprise Linux 6.
+
+Archivo /etc/vsftpd/vsftpd.conf.
+
+Utilice un editor de texto y modifique el archivo /etc/vsftpd/vsftpd.conf.
+
+vi /etc/vsftpd/vsftpd.conf
+Opción anonymous_enable.
+
+Esta opción viene incluida en la configuración predeterminada. Se utiliza para definir si se permitirán los accesos anónimos al servidor. Establezca como valor YES o NO de acuerdo a lo que se requiera.
+
+anonymous_enable=YES
+Opción local_enable.
+
+Esta opción viene incluida en la configuración predeterminada. Establece si se van a permitir los accesos autenticados de los usuarios locales del sistema. Establezca como valor YES o NO de acuerdo a lo que se requiera.
+
+local_enable=YES
+Opción write_enable.
+
+Esta opción viene incluida en la configuración predeterminada. Establece si se permite ejecutar write (escritura) en el servidor. Establezca como valor YES o NO de acuerdo a lo que se requiera.
+
+write_enable=YES
+Opciones anon_upload_enable y anon_mkdir_write_enable
+
+Ambas opciones vienen incluidas en la configuración predeterminada.
+
+La opción anon_upload_enable específica si los usuarios anónimos tendrán permitido subir contenido al servidor. Por lo general no es una función deseada, por lo que se acostumbra desactivar ésta.
+
+anon_upload_enable=NO
+La opción anon_mkdir_write_enable específica si los usuarios anónimos tendrán permitido crear directorios en el servidor. Al igual que la anterior, por lo general no es una función deseada, por lo que se acostumbra desactivar ésta.
+
+anon_mkdir_write_enable=NO
+
+Nota.
+Si se desea que los usuarios anónimos puedan subir archivos al servidor FTP, se deben dejar estas últimas dos opciones con valor YES, guardar el archivo /etc/vsftpd/vsftpd.conf y regresar al intérprete de mandatos para crear un directorio denominado /var/ftp/incoming, el cual debe pertenecer al usuario y grupo ftp y tener contexto de SELinux tipo public_content_rw_t.
+
+mkdir /var/ftp/incoming
+chown ftp:ftp /var/ftp/incoming
+chcon -R -t public_content_rw_t /var/ftp/incoming
+Se recomienda que /var/ftp/incoming esté asignado como una partición independiente al resto del sistema o bien se le aplique cuota de disco al usuario ftp, porque de otro modo cualquiera podría fácilmente saturar el espacio de disco disponible, desencadenando una denegación de servicio en el servidor.
+
+Opción ftpd_banner.
+
+Esta opción viene incluida en la configuración predeterminada. Sirve para establecer el banderín de bienvenida que será mostrado cada vez que un usuario acceda al servidor. Puede establecerse cualquier frase breve que considere conveniente, pero sin signos de puntuación.
+
+ftpd_banner=Bienvenido al servidor FTP de nuestra empresa
+Estableciendo jaulas para los usuarios: opciones chroot_local_user y chroot_list_file.
+
+Estas opciones vienen incluidas en la configuración predeterminada.
+
+De modo predeterminado los usuarios del sistema que se autentiquen tendrán acceso a otros directorios del sistema fuera de su directorio personal. Si se desea limitar a los usuarios a sólo poder utilizar su propio directorio personal, puede hacerse fácilmente con la opción chroot_local_user que habilitará la función de chroot() y las opciones chroot_list_enable y chroot_list_file, para establecer el archivo con la lista de usuarios que quedarán excluidos de la función chroot().
+
+chroot_local_user=YES
+chroot_list_enable=YES
+chroot_list_file=/etc/vsftpd/chroot_list
+Con lo anterior cada vez que un usuario local se autentique en el servidor FTP, sólo tendrá acceso a su propio directorio personal y lo que éste contenga. Por favor recuerde crear el archivo /etc/vsftpd/chroot_list debido a que de otro modo será imposible que funcione correctamente el servicio vsftpd.
+
+Nota.
+La función chroot() puede ser peligrosa si el usuario regular utilizado tiene acceso al intérprete de mandatos del sistema (/bin/bash o /bin/sh) y además privilegios de escritura sobre el directorio raíz de su propia jaula (es decir su directorio de inicio). Los directorios de inicio de los usuarios involucrados deben tener permiso 755, sean propiedad de root y se asigne al usuario /bin/false o /sbin/nologin como intérprete de mandatos.
+
+Lo siguiente corresponde a lo que sería necesario ejecutar para modificar una cuenta de usuario regular para la cual se quiera acceder al servidor FTP utilizando chroot() con vsftpd-3.x:
+
+chmod 755 /home/mengano
+chown root:root /home/mengano
+mkdir /home/mengano/public_html
+chown mengano:mengano /home/mengano/public_html
+usermod -s /sbin/nologin mengano
+Desde la versión 3.0 de vsftpd, de modo predeterminado se impide el ingreso con chroot() a todos los usuarios regulares que tengan acceso al intérprete de mandatos o bien que posean privilegios de escritura sobre su propio directorio de inicio.
+
+Opciones pasv_min_port y pasv_max_port.
+
+Ambas opciones están ausentes en el archivo /etc/vsftpd/vsftpd.conf. Añada éstas al final del archivo de configuración. Permiten establecer el rango arbitrario de puertos utilizados para las conexiones pasivas. Puede elegirse cualquier rango de puertos entre 1024 y 65535, mismo que deberá ser habilitado en el muro cortafuegos del servidor. En el siguiente ejemplo se establece el rango de puertos para conexiones pasivas de 30300 a 30309:
+
+pasv_min_port=30300
+pasv_max_port=30309
+Control del ancho de banda.
+
+Opción anon_max_rate.
+
+Esta opción está ausente en la configuración predeterminada. Puede añadirla al final del archivo /etc/vsftpd/vsftpd.conf. Se utiliza para limitar la tasa de transferencia, en bytes por segundo, para los usuarios anónimos, algo sumamente útil en servidores FTP de acceso público. En el siguiente ejemplo se limita la tasa de transferencia a 500 Kb por segundo para los usuarios anónimos:
+
+anon_max_rate=524288
+Opción local_max_rate.
+
+Esta opción está ausente en la configuración predeterminada. Puede añadirla al final del archivo /etc/vsftpd/vsftpd.conf. Hace lo mismo que anon_max_rate, pero aplica para usuarios locales del servidor. En el siguiente ejemplo se limita la tasa de transferencia a 1 MB por segundo para los usuarios locales:
+
+local_max_rate=1048576
+Opción max_clients.
+
+Esta opción está ausente en la configuración predeterminada. Puede añadirla al final del archivo /etc/vsftpd/vsftpd.conf. Establece el número máximo de clientes que podrán acceder simultáneamente hacia el servidor FTP. En el siguiente ejemplo se limitará el acceso a 20 clientes simultáneos.
+
+max_clients=20
+Opción max_per_ip.
+
+Esta opción está ausente en la configuración predeterminada. Puede añadirla al final del archivo /etc/vsftpd/vsftpd.conf. Establece el número máximo de conexiones que se pueden realizar desde una misma dirección IP. Tome en cuenta que algunas redes acceden a través de un servidor intermediario (Proxy) o puerta de enlace y debido a ésto podrían quedar bloqueados innecesariamente algunos accesos. En el siguiente ejemplo se limita el número de conexiones por IP simultáneas a un máximo de 10.
+
+max_per_ip=10
+Guarde el archivo y salga del editor de texto.
+
+Soporte SSL/TLS.
+
+Siendo que todos los datos enviados a través del protocolo FTP se hacen en texto simple (incluyendo nombres de usuario y claves de acceso), hoy en día es muy peligroso operar un servidor FTP sin SSL/TLS.
+
+VSFTPD puede ser configurado fácilmente para utilizar los protocolos SSL (Secure Sockets Layer o Nivel de Zócalo Seguro) y TLS (Transport Layer Security o Seguridad para Nivel de Transporte) a través de un certificado RSA.
+
+Acceda al sistema como el usuario root.
+
+Acceda al directorio /etc/pki/tls/.
+
+cd /etc/pki/tls/
+El certificado y firma digital se pueden generar ejecutando lo siguiente para utilizar una estructura X.509, algoritmo de cifrado RSA de 2048 bits, sin Triple DES —lo cual permita iniciar normalmente al servicio sin interacción alguna— y una validez por 1825 días —cinco años.
+
+openssl req -x509 -nodes -days 1825 -newkey rsa:2048 \
+    -keyout private/vsftpd.key \
+    -out certs/vsftpd.crt
+Lo anterior solicitará se ingresen los siguientes datos:
+
+Código de dos letras para el país.
+Estado o provincia.
+Ciudad.
+Nombre de la empresa o bien la razón social.
+Unidad o sección responsable del certificado.
+Nombre del anfitrión (FQDN) o bien dominio con comodín.
+Dirección de correo electrónico de la persona responsable del certificado.
+La salida devuelta sería similar a la siguiente:
+
+You are about to be asked to enter information that will be
+incorporated into your certificate request.
+What you are about to enter is what is called a Distinguished Name or
+a DN.
+There are quite a few fields but you can leave some blank
+For some fields there will be a default value,
+If you enter '.', the field will be left blank.
+
+-----
+Country Name (2 letter code) [GB]:MX
+State or Province Name (full name) [Berkshire]:Distrito Federal
+Locality Name (eg, city) [Newbury]:Mexico
+Organization Name (eg, company) [My Company Ltd]:Empresa, S.A. de C.V.
+Organizational Unit Name (eg, section) []:Direccion Comercial
+Common Name (eg your name or your server's hostname) []:*.dominio.org
+Email Address []:webmaster@dominio.org
+
+El archivo del certificado (vsftpd.crt) y el de la firma digital (vsftpd.key), deben tener permisos de sólo lectura para el usuario root.
+
+chmod 400 certs/vsftpd.crt private/vsftpd.key
+Regrese al directorio de inicio del usuario root.
+
+cd
+Edite el archivo /etc/vsftpd/vsftpd.conf:
+
+vi /etc/vsftpd/vsftpd.conf
+Añada al final de este archivo todo el siguiente contenido:
+
+# Habilita el soporte de TLS/SSL
+ssl_enable=YES
+# Deshabilita o habilita utilizar TLS/SSL con usuarios anónimos
+allow_anon_ssl=NO
+# Obliga a utilizar TLS/SSL para todas las operaciones, es decir, 
+# transferencia de datos y autenticación de usuarios locales.
+# Establecer el valor NO, hace que sea opcional utilizar TLS/SSL.
+force_local_data_ssl=YES
+force_local_logins_ssl=YES
+# Se prefiere TLSv1 sobre SSLv2 y SSLv3
+ssl_tlsv1=YES
+ssl_sslv2=NO
+ssl_sslv3=NO
+# Rutas del certificado y firma digital
+rsa_cert_file=/etc/pki/tls/certs/vsftpd.crt
+rsa_private_key_file=/etc/pki/tls/private/vsftpd.key
+# Los desarrolladores de FileZilla decidieron con la versión 3.5.3 que
+# eliminarían el soporte para el algoritmo de cifrado 3DES-CBC-SHA, 
+# con el argumento de que este algoritmo es una de los más lentos. 
+# Sin embargo con ésto rompieron compatibilidad con miles de 
+# servidores FTP que utilizan FTPES. La solución temporal, mientras
+# los desarrolladores de FileZilla razonan lo absurdo de su 
+# decisión, es utilizar la siguiente opción:
+ssl_ciphers=HIGH
+# Filezilla además requiere desactivar la siguiente opción que puede
+# romper compatibilidad con otros clientes. Cabe señalar que Filezilla
+# se ha convertido en un desarrollo políticamente incorrecto por dejar
+# de respetar los estándares.
+require_ssl_reuse=NO
+Para aplicar los cambios realizados a la configuración, reinicie el servicio vsftpd ejecutando lo siguiente:
+
+service vsftpd restart
+Clientes recomendados para acceder a FTPES.
+
+Entre los clientes recomendados para acceder a través de FTPES, está LFTP. Instale éste ejecutando lo siguiente
+
+yum -y install lftp
+Ejecute lftp con las opciones -e con 'set ftp:ssl-force true' como argumento y nuevamente -e con 'set ssl:verify-certificate no' como argumento y defina un nombre de anfitrión o dirección IP como último argumento. En el siguiente ejemplo se iniciará una conexión hacia un hipotético anfitrión con dirección IP 192.168.70.105:
+
+lftp -e 'set ftp:ssl-force true' \
+    -e 'set ssl:verify-certificate no' 192.168.70.105
+Una vez en el intérprete de mandatos de LFTP, ejecute user con un nombre de usuario como argumento. En el siguiente ejemplo se utiliza al usuario fulano:
+
+lftp 192.168.70.105:~> user fulano
+Lo anterior solicitará a continuación se ingrese la contraseña correspondiente.
+
+Dentro intérprete de mandatos de lftp, ejecute pwd.
+
+lftp 192.168.70.105:~> pwd
+Lo anterior devolverá una salida similar a la siguiente.
+
+ftp://fulano@192.168.70.105/
+Ejecute mkdir con prueba como argumento.
+
+lftp 192.168.70.105:~> mkdir prueba
+Lo anterior devolverá una salida similar a la siguiente.
+
+mkdir ok, `prueba' creado
+Ejecute ls.
+
+lftp 192.168.70.105:~> ls
+Lo anterior devolverá una salida similar a la siguiente.
+
+drwxr-xr-x    2 500      500         4096 Dec 13 04:36 prueba
+Para salir de lftp, ejecute bye.
+
+lftp 192.168.70.105:~> bye
+Otros clientes son soporte para FTPES son Filezilla 3.3.x (configurar conexión como FTPES - FTP sobre TLS/SSL explícito) y WinSCP. Al momento de redactar este documento, la versión más reciente de gFTP tienen roto el soporte para FTP sobre TLS/SSL (FTPS y FTPES).
+
+Si utiliza Filezilla es importante resaltar que a partir de la versión 3.5.3 los desarrolladores tomaron una absurda decisión que eliminó el soporte para el algoritmo de cifrado SSL 3DES-CBC-SHA, rompiendo la compatibilidad con miles de servidores FTP que utilizan FTPES. La solución a este problema es añadir la opción ssl_ciphers=HIGH en el archivo /etc/vsftpd/vsftpd.conf. Filezilla dispone de versiones para GNU/Linux, Mac OS X y Windows XP/Vista/7. La siguiente imagen ilustra la configuración que se requiere utilizar.
+
+Configuración de cuenta FTPES en Filezilla.
+Configuración de cuenta FTPES en Filezilla.
+
+Luego de iniciada la conexión, la primera vez que Filezilla se conecte al servidor, mostrará una ventana con la información del certificado y solicitará se acepte éste. Active la casilla que dice «Siempre confiar en el certificado en futuras sesiones» antes de hacer clic en el botón de «Aceptar.»
