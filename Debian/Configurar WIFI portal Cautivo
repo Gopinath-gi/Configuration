@@ -9,3 +9,6 @@ wget -c "http://www.chillispot.org/download/chillispot_1.0_i386.deb"
 apt-get install apache2 apache2.2-common apache2-mpm-worker apache2-utils
 
 
+
+
+
