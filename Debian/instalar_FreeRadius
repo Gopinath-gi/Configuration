@@ -1,0 +1,58 @@
+instalar FreeRadius 
+-------------------
+wget -c "http://ftp.cc.uoc.gr/mirrors/ftp.freeradius.org/freeradius-server-2.1.12.tar.gz"
+apt-get install libssl-dev 
+apt-get install build-essential 
+root@debian6:/root/# tar -zxvf freeradius-server-2.1.12.tar.gz
+root@debian6:/root/# cd freeradius-server-2.1.12
+root@debian6:/root/freeradius-server-2.1.12/# ./configure --without-rlm_smb --without-rlm-perl --without-rlm_ldap --without-rlm_krb5
+root@debian6:/root/freeradius-server-2.1.12/# make
+root@debian6:/root/freeradius-server-2.1.12/# make install 
+root@debian6:/root/# cd /usr/local/etc/raddb/
+root@debian6:/usr/local/etc/raddb/# cp -rfv eap.conf eap1.conf
+
+ 17                 eap {
+ 18                         #  Invoke the default supported EAP type when
+ 19                         #  EAP-Identity response is received.
+ 20                         #
+ 21                         #  The incoming EAP messages DO NOT specify which EAP
+ 22                         #  type they will be using, so it MUST be set here.
+ 23                         #
+ 24                         #  For now, only one default EAP type may be used at a time.
+ 25                         #
+ 26                         #  If the EAP-Type attribute is set by another module,
+ 27                         #  then that EAP type takes precedence over the
+ 28                         #  default type configured here.
+ 29                         #
+ 30                         default_eap_type = peap
+
+root@debian6:/usr/local/etc/raddb/# cp -rfv users users1
+root@debian6:/usr/local/etc/raddb/# vim users
+205 rauesso Cleartext-Password:="rauesso"
+
+root@debian6:/usr/local/etc/raddb/# cd modules
+cp -rfv mschap mschap1
+ 19         use_mppe = yes
+ 20
+ 21         # if mppe is enabled require_encryption makes
+ 22         # encryption moderate
+ 23         #
+ 24         require_encryption = yes
+ 25
+ 26         # require_strong always requires 128 bit key
+ 27         # encryption
+ 28         #
+ 29         require_strong = yes
+ 30
+ 31         # Windows sends us a username in the form of
+ 32         # DOMAIN\user, but sends the challenge response
+ 33         # based on only the user portion.  This hack
+ 34         # corrects for that incorrect behavior.
+ 35         #
+ 36         with_ntdomain_hack = yes
+
+root@debian6:/usr/local/etc/raddb/modules# ldconfig 
+root@debian6:/usr/local/etc/raddb# radiusd -f -X 
+root@debian6:/usr/local/etc/raddb# cp -rfv clients.conf clients1.conf
+root@debian6:/usr/local/etc/raddb# vim clients.conf
+root@debian6:/usr/local/etc/raddb# radiusd -f -X 
