@@ -1,0 +1,323 @@
+Configuración de Squid: 
+
+yum -y install squid
+
+SELinux y el servicio squid.
+
+En CentOS 6 y Red Hat™ Enterprise Linux 6, la política squid_connect_any viene habilitada de modo predeterminado. En CentOS 5 y Red Hat™ Enterprise Linux 5, esta política viene deshabilitada de modo predeterminado. Esta política hace que SELinux permita a Squid aceptar conexiones de los clientes desde cualquier dirección IP. Si utiliza CentOS 5 y Red Hat™ Enterprise Linux 5, ejecute:
+
+setsebool -P squid_connect_any 1
+
+Para SELinux permita a Squid operar en modo transparente en CentOS 6 y Red Hat™ Enterprise Linux 6, ejecute:
+setsebool -P squid_use_tproxy 1
+
+Nota.
+En CentOS 5 y Red Hat™ Enterprise Linux 5, se pude utilizar una política adicional. Para que SELinux permita al servicio squid funcionar normalmente, haciendo que todo lo anteriormente descrito en esta sección pierda sentido, ejecute:
+
+setsebool -P squid_disable_trans 1
+
+Squid utiliza el archivo de configuración localizado en /etc/squid/squid.conf y podrá trabajar sobre este utilizando su editor de texto simple preferido. Existen un gran número de opciones, de los cuales recomendamos configurar los siguientes:
+
+Al menos una Lista de Control de Acceso
+Al menos una Regla de Control de Acceso
+http_port
+cache_dir
+error_directory, sólo si va a personalizar mensajes de error.
+El resto de los opciones mencionados en este documento son, valga la redundancia, opcionales.
+
+Edite el archivo /etc/squid/squid.conf:
+
+vi /etc/squid/squid.conf
+Controles de acceso.
+
+Parapoder controlar el tráfico de los clientes hacia Internet, es necesario establecer Listas de Control de Acceso que definan una red o bien ciertos anfitriones en particular. A cada lista se le asignará una Regla de Control de Acceso que permitirá o denegará el acceso a Squid.
+
+Listas de control de acceso.
+
+De modo predeterminado en CentOS 6 y Red Hat™ Enterprise Linux 6, Squid habilita el acceso a todas las redes locales, definidas en el RFC1918. Es decir, permite el acceso a 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, fc00::/7 y fe80::/10.
+
+# Example rule allowing access from your local networks.
+# Adapt to list your (internal) IP networks from where browsing
+# should be allowed
+acl localnet src 10.0.0.0/8     # RFC1918 possible internal network
+acl localnet src 172.16.0.0/12  # RFC1918 possible internal network
+acl localnet src 192.168.0.0/16 # RFC1918 possible internal network
+acl localnet src fc00::/7   # RFC 4193 local private network range
+acl localnet src fe80::/10  # RFC 4291 link-local (directly plugged) machines
+Deshabilite todo lo anterior, colocando una almoadilla (# al inicio de cada línea.
+
+# Example rule allowing access from your local networks.
+# Adapt to list your (internal) IP networks from where browsing
+# should be allowed
+# acl localnet src 10.0.0.0/8     # RFC1918 possible internal network
+# acl localnet src 172.16.0.0/12  # RFC1918 possible internal network
+# acl localnet src 192.168.0.0/16 # RFC1918 possible internal network
+# acl localnet src fc00::/7   # RFC 4193 local private network range
+# acl localnet src fe80::/10  # RFC 4291 link-local (directly plugged) machines
+Regularmente una lista de control de acceso se establece con la siguiente sintaxis:
+
+acl [nombre de la lista] src [lo que compone a la lista]
+Si se desea establecer una lista de control de acceso que abarque a toda la red local, basta definir la IP correspondiente a la red y la máscara de la sub-red. Por ejemplo, si se tiene una red donde los anfitriones tienen direcciones del segmento IP 172.16.100.0/28, se puede utilizar lo siguiente:
+
+acl localnet src 172.16.100.0/28
+También puede definirse una Lista de Control de Acceso especificando un archivo localizado en cualquier parte del disco duro y la cual contiene una lista de direcciones IP. Ejemplo:
+
+acl permitidos src "/etc/squid/listas/permitidos"
+El archivo /etc/squid/listas/permitidos tendría un contenido similar al siguiente:
+
+172.16.100.1
+172.16.100.2
+172.16.100.3
+172.16.100.15
+172.16.100.16
+172.16.100.20
+172.16.100.40
+Lo anterior estaría definiendo que la Lista de Control de Acceso denominada permitidos estaría compuesta por las direcciones IP incluidas en el archivo /etc/squid/listas/permitidos.
+
+Reglas de Control de Acceso.
+
+Estas definen si se permite o deniega acceso hacia Squid. Se aplican a las Listas de Control de Acceso. Deben colocarse en la sección de reglas de control de acceso definidas por el administrador, es decir, a partir de donde se localiza la siguiente leyenda:
+
+#
+# INSERT YOUR OWN RULE(S) HERE TO ALLOW ACCESS FROM YOUR CLIENTS
+#
+La sintaxis básica de una regla de control de acceso es la siguiente:
+
+http_access [deny o allow] [lista de control de acceso]
+Para desactivar la configuración predeterminada y poder utilizar una diferente, localice La línea que incluye http_access allow localnet:
+
+# Example rule allowing access from your local networks.
+# Adapt localnet in the ACL section to list your (internal) IP networks
+# from where browsing should be allowed
+http_access allow localnet
+http_access allow localhost
+Deshabilite esta línea colocando una almohadilla (# al inicio de ésta:
+
+# Example rule allowing access from your local networks.
+# Adapt localnet in the ACL section to list your (internal) IP networks
+# from where browsing should be allowed
+# http_access allow localnet
+http_access allow localhost
+En el siguiente ejemplo se considera una regla que establece acceso permitido a Squid a la Lista de Control de Acceso denominada permitidos:
+
+http_access allow permitidos
+También pueden definirse reglas valiéndose de la expresión !, la cual significa no. Pueden definirse, por ejemplo, dos listas de control de acceso, una denominada lista1 y otra denominada lista2, en la misma regla de control de acceso, en donde se asigna una expresión a una de estas. La siguiente establece que se permite el acceso a Squid a lo que comprenda lista1 excepto aquello que comprenda lista2:
+
+http_access allow lista1 !lista2
+Este tipo de reglas son útiles cuando se tiene un gran grupo de IP dentro de un rango de red al que se debe permitir acceso y otro grupo dentro de la misma red al que se debe denegar el acceso.
+
+Aplicando Listas y Reglas de control de acceso.
+
+Una vez comprendido el funcionamiento de la Listas y las Regla de Control de Acceso, se procede a determinar cuales utilizar para la configuración.
+
+Caso 1.
+
+Considerando como ejemplo que se dispone de una red 172.16.100.0/28, si se desea definir toda la red local, se utilizaría la siguiente línea en la sección de Listas de Control de Acceso:
+
+acl localnet src 172.16.100.0/28
+Habiendo hecho lo anterior, la sección de listas de control de acceso debe quedar más o menos del siguiente modo:
+
+Listas de Control de Acceso: definición de una red local completa
+
+#
+# Recommended minimum configuration:
+acl all src 0.0.0.0/0
+acl manager proto cache_object
+acl localhost src 127.0.0.1/8
+acl localnet src 172.16.100.0/28
+A continuación se procede a aplicar la regla de control de acceso:
+
+http_access allow localnet
+Habiendo hecho lo anterior, la zona de reglas de control de acceso debería quedar de modo similar al siguiente:
+
+Reglas de control de acceso: Acceso a una Lista de Control de Acceso.
+
+#
+# INSERT YOUR OWN RULE(S) HERE TO ALLOW ACCESS FROM YOUR CLIENTS
+#
+http_access allow localhost
+http_access allow localnet
+http_access deny all
+La regla http_access allow localnet permite el acceso a Squid a la Lista de Control de Acceso denominada localnet, la cual, en el siguiente ejemplo, está conformada por 172.16.100.0/28. Esto significa que cualquier anfitrión desde 172.16.100.1 hasta 172.16.100.14 podrá acceder a Squid.
+
+Caso 2.
+
+Si sólo se desea permitir el acceso a Squid a ciertas direcciones IP de la red local, deberemos crear un archivo que contenga dicha lista. Genere el archivo /etc/squid/listas/localnet, dentro del cual se incluirán sólo aquellas direcciones IP que desea confirmen la Lista de Control de acceso. Ejemplo:
+
+172.16.100.1
+172.16.100.2
+172.16.100.3
+172.16.100.4
+172.16.100.5
+172.16.100.6
+172.16.100.7
+Denominaremos a esta lista de control de acceso como localnet:
+
+acl localnet src "/etc/squid/listas/localnet"
+Habiendo hecho lo anterior, la sección de listas de control de acceso debe quedar más o menos del siguiente modo:
+
+Listas de Control de Acceso: definición de una red local completa
+
+#
+# Recommended minimum configuration:
+acl all src 0.0.0.0/0
+acl manager proto cache_object
+acl localhost src 127.0.0.1/255.255.255.255
+acl localnet src "/etc/squid/listas/localnet"
+A continuación se procede a aplicar la regla de control de acceso:
+
+http_access allow localnet
+Habiendo hecho lo anterior, la zona de reglas de control de acceso debería quedar de modo similar al siguiente:
+
+Reglas de control de acceso: Acceso a una Lista de Control de Acceso.
+
+#
+# INSERT YOUR OWN RULE(S) HERE TO ALLOW ACCESS FROM YOUR CLIENTS
+#
+http_access allow localhost
+http_access allow localnet
+http_access deny all
+La regla http_access allow localnet permite el acceso a Squid a la Lista de Control de Acceso denominada localnet, la cual está conformada por las direcciones IP especificadas en el archivo /etc/squid/listas/localnet. Esto significa que cualquier anfitrión excluido del archivo /etc/squid/listas/localnet se le denegará el acceso a Squid.
+
+Opción cache_mgr.
+Esta opción es de carácter informativo. De modo predeterminado, si algo ocurre con el caché, como por ejemplo que muera el procesos, se enviará un mensaje de aviso a la cuenta webmaster del servidor. Puede especificarse una distinta si acaso se considera conveniente.
+
+cache_mgr joseperez@midominio.net
+
+Opción http_port.
+Esta opción es utilizado para indicar el puerto a través del cual escuchará peticiones Squid. EL valor predeterminado es 3128, es deicr, Squid escuchará peticiones a través del puerto 3128/tcp.
+http_port 3128
+El puerto estándar designado para servidores de caché de Internet (webcache) es el puerto 8080.
+http_port 8080
+
+La opción permite establecer también si se quiere utilizar una dirección IP en particular. Esto añade mayor seguridad al servicio, pues si se tiene dos tarjetas de red, una con una dirección IP pública y otra con una dirección IP privada, se puede establecer que Squid sólo permita conexiones desde la dirección IP privada.
+http_port 192.168.80.1:8080
+
+Si se necesita configurar un servidor proxy en modo transparente, sólo es necesario añadir la opción intercept, misma que desde la versión 3.1 de Squid reemplaza a la opción transparent.
+http_port 192.168.80.1:8080 intercept
+
+Nota.
+Para configurar un servidor proxy en modo transparente en CentOS 5 y Red Hat EnterpriseLinux 5 y versiones anteriores, utilice la opción transparent:
+http_port 192.168.80.1:8080 transparent
+
+Opción cache_dir.
+Esta opción se utiliza para establecer que tamaño se desea que utilice Squid para almacenamiento de caché en el disco duro. De modo predeterminado Squid utilizará el formato ufs para crear en el directorio /var/spool/squid un caché de 100 MB, dividido en jerarquías de 16 directorios subordinados, hasta 256 niveles cada uno:
+cache_dir ufs /var/spool/squid 100 16 256
+
+Se puede incrementar el tamaño del caché hasta donde lo desee el administrador. Mientras más grande sea el caché, más objetos se almacenarán en éste y por lo tanto se consumirá menos el ancho de banda. La siguiente línea establece un caché de 2 GB:
+
+cache_dir ufs /var/spool/squid 2048 16 256
+El formato de cache ufs puede llegar a bloquear el proceso principal de Squid en operaciones de entrada/salida sobre el sistema de archivos cuando hay muchos clientes conectados. Para evitar que esto ocurra, se recomienda utilizar aufs, que utiliza el mismo formato de ufs, pero funciona de manera asincrónica, consiguiéndose un mejor desempeño.
+
+cache_dir aufs /var/spool/squid 2048 16 256
+
+Opción maximum_object_size.
+Esta opción se utiliza para definir el tamaño máximo de los objetos en el caché. Se recomienda establecerla en escenarios con alta carga de trabajo, puesto que permite evitar desperdiciar recursos de sistema almacenando en el caché objetos de gran tamaño que probablemente sólo sean aprovechados por unos pocos usuarios, optimizando el uso del caché con objetos pequeños que de otro modo generarían una gran cantidad de peticiones hacia las redes públicas. En el siguiente ejemplo se establece un límite de 48 MB para los objetos del caché.
+
+maximum_object_size 48 MB
+
+Opciones cache_swap_low y cache_swap_high.
+Es posible realizar una limpieza automática del caché de Squid cuando éste llegue a cierta capacidad. La opción cache_swap_low establece el porcentaje a partir del cual se comenzará a limpiar el cache. La opción cache_swap_high establece el porcentaje a partir del cual se comenzará a limpiar de manera agresiva el cache. En el siguiente ejemplo se establece que el cache se comienza a limpiar cuando alcanza el 90% y se comienza a limpiar de manera agresiva cuando alcanza el 95%.
+
+cache_swap_low 90
+cache_swap_high 95
+Lo anterior permite tener un caché saludable que se limpia automáticamente. Se recomienda utilizar estas opciones en escenarios con alta carga de trabajo.
+
+Opción cache_replacement_policy.
+A través de esta opción se incluye soporte para los siguientes algoritmos para el caché:
+
+LRU	Acrónimo de Least Recently Used, que traduce como Menos Recientemente Utilizado. En este algoritmo los objetos que fueron accedidos hace mucho tiempo, son eliminados primero y manteniendo siempre en el caché a los objetos más recientemente solicitados. Ésta política es la utilizada por Squid de modo predeterminado.
+LFUDA	Acrónimo de Least Frequently Used with Dynamic Aging, que se traduce como Menos Frecuentemente Utilizado con Envejecimiento Dinámico. En este algoritmo los objetos más solicitados permanecen en el caché sin importar su tamaño optimizando la eficiencia (hit rate) por octetos (Bytes) a expensas de la eficiencia misma, de modo que un objeto grande que se solicite con mayor frecuencia impedirá que se pueda hacer caché de objetos pequeños que se soliciten con menor frecuencia.
+GDSF	Acrónimo de GreedyDual Size Frequency, que se traduce como Frecuencia de tamaño GreedyDual (codicioso dual), que es el algoritmo sobre el cual se basa GDSF. Optimiza la eficiencia (hit rate) por objeto manteniendo en el caché los objetos pequeños más frecuentemente solicitados de modo que hay mejores posibilidades de lograr respuesta a una solicitud (hit). Tiene una eficiencia por octetos (Bytes) menor que el algoritmo LFUDA debido a que descarta del caché objetos grandes que sean solicitado con frecuencia.
+El algoritmo recomendado y que ha demostrado mejor desempeño en escenarios de alta carga de trabajo es LFUDA.
+
+cache_replacement_policy heap LFUDA
+
+Opción cache_mem.
+La opción cache_mem establece la cantidad ideal de memoria para lo siguiente:
+
+Objetos en tránsito.
+Objetos frecuentemente utilizados (Hot).
+Objetos negativamente almacenados en el caché.
+Los datos de estos objetos se almacenan en bloques de 4 Kb. La opción cache_mem especifica un límite máximo en el tamaño total de bloques acomodados, donde los objetos en tránsito tienen mayor prioridad. Sin embargo los objetos frecuentemente utilizados (Hot) y aquellos negativamente almacenados en el caché, podrán utilizar la memoria sin utilizar hasta que esta sea requerida. De ser necesario, si un objeto en tránsito es mayor a la cantidad de memoria especificada, Squid excederá lo que sea necesario para satisfacer la petición.
+
+De modo predeterminado, desde la versión 3.1 de Squid, se establecen 256 MB, que es más que suficiente para las necesidades de redes de área local con pocos anfitriones. Puede especificar una cantidad menor para obtener un mejor rendimiento, pues conviene utilizar la memoria disponible para hacer cache en memoria de muchos objetos pequeños que son frecuentemente visitados, que hacer cache de unos pocos objetos grandes que sólo unos pocos usuarios aprovecharán. En el siguiente ejemplo se establecen 48 MB como límite de tamaño para los objetos en tránsito:
+
+cache_mem 48 MB
+
+Nota.
+En CentOS 5 y Red Hat EnterpriseLinux 5 y versiones anteriores, el valor predeterminado de cache_mem son 8 MB, por lo cual puede incrementar este valor hasta donde se considere pertinente.
+
+cache_mem 32 MB
+
+Estableciendo el idioma de los mensajes mostrados por Squid hacia el usuario.
+Squid incluye traducción a distintos idiomas de las distintas páginas de error e informativas que son desplegadas en un momento dado durante su operación. Dichas traducciones se pueden encontrar en /usr/share/squid/errors/. Desde la versión 3.0 de Squid, el idioma se detecta automáticamente a partir del navegador utilizado por el usuario. Es innecesario modificar opción alguno, salvo que se haya personalizado los mensajes, en cuyo caso conviene utilizar una ruta distinta a la del idioma utilizado para evitar se sobre-escriban los archivos después de actualizar el sistema.
+
+Nota.
+En CentOS 5 y Red Hat™ Enterprise Linux 5 y versiones anteriores, el idioma de los mensajes de error se establece a través dla opción error_directory, cuyo valor predeterminado es /usr/share/squid/errors/English y puede ser cambiado por el valor /usr/share/squid/errors/Spanish:
+
+error_directory /usr/share/squid/errors/Spanish
+Iniciando, reiniciando y añadiendo el servicio al arranque del sistema.
+
+Una vez terminada la configuración, para iniciar por primera vez Squid ejecute:
+
+service squid start
+Si necesita volver a cargar la configuración para probar cambios realizados, sin detener el servicio, ejecute:
+
+service squid reload
+Si necesita reiniciar para probar cambios hechos en la configuración, considerando que este proceso puede llegar a demorar algunos minutos, ejecute:
+
+service squid restart
+Para que Squid inicie de manera automática junto con el sistema, ejecute:
+
+chkconfig squid on
+Lo anterior habilitará el servicio squid en todos los niveles de ejecución.
+
+service squid reload
+Cuando se trata de errores graves que impiden iniciar el servicio, puede examinarse el contenido del archivo /var/log/squid/squid.out con el mandato less, more o cualquier otro visor de texto:
+
+tail -80 /var/log/squid/squid.out
+Modificaciones necesarias en el muro cortafuegos.
+
+Si se utiliza un cortafuegos con políticas estrictas, como por ejemplo Shorewall, es necesario abrir el puerto 8080 por TCP (webcache), si se eligió utilizar el puerto 8080 en lugar del 3128.
+
+La regla para el archivo /etc/shorewall/rules de Shorewall, que sólo permitirá el acceso hacia Squid desde la zona de red de área local, correspondería a algo similar a lo siguiente:
+
+#ACTION	SOURCE	DEST	PROTO 	DEST		SOURCE
+#				PORT		PORT(S)1
+ACCEPT	loc	fw	tcp	8080
+#LAST LINE -- ADD YOUR ENTRIES BEFORE THIS ONE -- DO NOT REMOVE
+Para aplicar los cambios en Shorewall, ejecute:
+
+service shorewall restart
+Re-direccionamiento de peticiones a través de la opción REDIRECT en Shorewall.
+
+La acción REDIRECT en Shorewall permite redirigir peticiones hacia protocolo HTTP para hacerlas pasar a través de Squid. En el siguiente ejemplo las peticiones hechas desde la zona que corresponde a la red local serán redirigidas hacia el puerto 8080 del cortafuegos, en donde está configurado Squid configurado como Servidor Proxy (Proxy) transparente.
+
+#ACTION	SOURCE	DEST	PROTO 	DEST		SOURCE
+#				PORT		PORT(S)1
+ACCEPT	loc	fw	tcp	8080
+REDIRECT	loc	8080	tcp	80
+#LAST LINE -- ADD YOUR ENTRIES BEFORE THIS ONE -- DO NOT REMOVE
+Exclusión de sitios en Shorewall.
+
+En el caso de sitios que se quiera excluir de ser utilizados con Squid, es decir, sitios problemáticos, se puede configurar en Shorewall que el acceso sea directo, con una configuración similar a la del siguiente ejemplo, donde se excluye de pasar por Squid las peticiones dirigidas a las redes 201.144.108.0/24 (IMSS.gob.mx) y 200.33.74.0/24 (SAT.gob.mx) y se abre el paso directo desde la red local hacia esta red:
+
+#ACTION	SOURCE	DEST	PROTO 	DEST		SOURCE
+#				PORT		PORT(S)1
+ACCEPT	loc	fw	tcp	8080
+REDIRECT	loc	8080			tcp	80	-	!201.144.108.0/24,200.33.74.0/24
+ACCEPT		loc	net:201.144.108.0/24	all
+ACCEPT		loc	net:200.33.74.0/24	all
+#LAST LINE -- ADD YOUR ENTRIES BEFORE THIS ONE -- DO NOT REMOVE
+Re-direccionamiento de peticiones a través de iptables.
+
+Bajo ciertas circunstancias, se requerirá tener salida transparente hacia Internet para ciertos servicios, pero al mismo tiempo se necesitará re-direccionar peticiones hacia servicio HTTP para pasar a través del el puerto donde escucha peticiones Squid, como proxy en modo transparente, es decir el puerto 8080/tcp, de modo que se impida la salida hacia alguna hacia servidores HTTP en el exterior sin que ésta pase antes por Squid. Ningún proxy conocido puede funcionar en modo transparente para los protocolos HTTPS, FTP, GOPHER ni WAIS, por lo que dichos protocolos tendrán que ser filtrados a través del NAT.
+
+El re-direccionamiento se hace a través de iptables. Considerando para este ejemplo que la red local se accede a través de una interfaz eth1, el siguiente esquema ejemplifica un re-direccionamiento:
+
+iptables -A INPUT -m state --state NEW -m tcp -p tcp \
+     -i eth1 --dport 8080 -j ACCEPT
+iptables -t nat -A PREROUTING -i eth1 -p tcp \
+    --dport 80 -j REDIRECT --to-port 8080
+service iptables save
