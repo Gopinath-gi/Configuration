@@ -1,4 +1,7 @@
-Configuración de OpenSSH.
+Configuración de OpenSSH
+
+CentOS 6.5 
+----------
 
 yum -y install openssh openssh-server openssh-clients
 
@@ -220,3 +223,29 @@ scp -rp Mail fulano@192.168.70.99:~/
 En el siguiente ejemplo se transferirá la carpeta Mail, junto con todo su contenido, desde el directorio de inicio del usuario fulano en el servidor 192.169.0.99, cuyo servicio de SSH escucha peticiones a través del puerto 52341, preservando tiempos y modos, hacia el directorio del usuario con el que se está trabajando en el anfitrión local.
 
 scp -P 52341 -rp fulano@192.168.70.99:~/Mail ./
+
+
+Centos 5.5
+----------
+
+Actualizar el paquete que viene por defecto a la versión más reciente: 
+
+# wget -c "http://ubuntu.ich.edu.pe/pub/CentOS/jail_ssh/openssh-5.5p1-1.i386.rpm"
+# wget -c "http://ubuntu.ich.edu.pe/pub/CentOS/jail_ssh/openssh-clients-5.5p1-1.i386.rpm"
+# wget -c "http://ubuntu.ich.edu.pe/pub/CentOS/jail_ssh/openssh-debuginfo-5.5p1-1.i386.rpm"
+# wget -c "http://ubuntu.ich.edu.pe/pub/CentOS/jail_ssh/openssh-server-5.5p1-1.i386.rpm"
+
+# rpm -Uvh *.rpm 
+
+# vi /etc/ssh/sshd-config
+
+# override default of no subsystems
+#Subsystem      sftp    /usr/libexec/openssh/sftp-server
+Subsystem  sftp   internal-sftp
+
+Match User eflores
+        ChrootDirectory /home/eflores/
+        ForceCommand internal-sftp
+        AllowTcpForwarding no
+
+

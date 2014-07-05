@@ -1,0 +1,89 @@
+chroot httpd centos
+
+# J=/httpdjail
+# mkdir $J
+# yum install mysql mysql-server httpd php-mysql php-pear php-xml php-mysql php-cli php-imap php-gd php-pdo php-devel php-mbstring php-common php-ldap php httpd-devel
+# mkdir -p $J/var/run
+# chown -R root.root $J/var/run
+# mkdir -p $J/home/httpd
+# mkdir -p $J/var/www/html
+# mkdir -p $J/tmp
+# chmod 1777 $J/tmp
+# mkdir -p $J/var/lib/php/session
+# chown root.apache $J/var/lib/php/session
+
+Install mod_chroot
+# cd /opt/
+# wget http://core.segfault.pl/~hobbit/mod_chroot/dist/mod_chroot-0.5.tar.gz
+# tar -zxvf mod_chroot-0.5.tar.gz
+# C=/etc/httpd/conf/httpd.conf
+# vi $C
+
+Buscar la línea: 
+PidFile run/httpd.pid
+
+Reemplazarla con: 
+PidFile /var/run/httpd.pid
+
+ChrootDir /httpdjail
+
+Busque la Línea
+ServerRoot "/etc/httpd"
+
+Añada las siguientes líneas
+LockFile /var/run/httpd.lock
+CoreDumpDirectory /var/run
+ScoreBoardFile /var/run/httpd.scoreboard
+
+Make sure mod_chroot.so line exists. For example, 64 bit Linux should have line as follows:
+
+LoadModule chroot_module      /usr/lib64/httpd/modules/mod_chroot.so
+32 bit Linux config line:
+
+LoadModule chroot_module      /usr/lib/httpd/modules/mod_chroot.so
+Save and close the file.
+
+Disable SELinux for Apache
+
+You need to disable SELinux for apache, enter:
+# setsebool httpd_disable_trans 1
+
+See article "disabling SELinux for only Apache / httpd in Linux" for further details.
+
+Patch up /etc/init.d/httpd
+Open /etc/init.d/httpd file, enter:
+# vi /etc/init.d/httpd
+
+Find out line that read as follows:
+
+# Start httpd in the C locale by default.
+HTTPD_LANG=${HTTPD_LANG-"C"}
+Add following line (set ROOT to $J):
+
+ROOT=/httpdjail
+Find stop() that read as follows:
+
+stop() {
+        echo -n $"Stopping $prog: "
+        killproc -d 10 $httpd
+        RETVAL=$?
+        echo
+        [ $RETVAL = 0 ] && rm -f ${lockfile} ${pidfile}
+}
+Replace it as follows (you need to link /var/run/httpd.pid to $J/var/run/httpd.pid; so that stop operation works):
+
+stop() {
+        /bin/ln -s $ROOT/var/run/httpd.pid /var/run/httpd.pid
+        echo -n $"Stopping $prog: "
+        killproc -d 10 $httpd
+        RETVAL=$?
+        echo
+        [ $RETVAL = 0 ] && rm -f ${lockfile} ${pidfile}
+}
+Save and close the file. Set immutable permission on /etc/init.d/httpd so that file cannot be modified, updated by yum, deleted or renamed, no link can be created to this file and no data can be written to the file. Only the superuser or a process possessing the CAP_LINUX_IMMUTABLE capability can set or clear this attribute:
+# chattr +i /etc/init.d/httpd
+
+How do I start chrooted httpd?
+
+Type the following command:
+# /etc/init.d/httpd start
