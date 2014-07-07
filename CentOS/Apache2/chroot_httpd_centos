@@ -2,7 +2,7 @@ chroot httpd centos
 
 # J=/httpdjail
 # mkdir $J
-# yum install mysql mysql-server httpd php-mysql php-pear php-xml php-mysql php-cli php-imap php-gd php-pdo php-devel php-mbstring php-common php-ldap php httpd-devel
+# yum install mysql mysql-server httpd php-mysql php-pear php-xml php-mysql php-cli php-imap php-gd php-pdo php-devel php-mbstring php-common php-ldap php httpd-devel httpd
 # mkdir -p $J/var/run
 # chown -R root.root $J/var/run
 # mkdir -p $J/home/httpd
@@ -16,6 +16,8 @@ Install mod_chroot
 # cd /opt/
 # wget http://core.segfault.pl/~hobbit/mod_chroot/dist/mod_chroot-0.5.tar.gz
 # tar -zxvf mod_chroot-0.5.tar.gz
+# cd mod_chroot-0.5
+# apxs -cia mod_chroot.c
 # C=/etc/httpd/conf/httpd.conf
 # vi $C
 
