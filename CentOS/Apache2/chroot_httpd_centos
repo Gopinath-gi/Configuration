@@ -27,6 +27,7 @@ PidFile run/httpd.pid
 Reemplazarla con: 
 PidFile /var/run/httpd.pid
 
+Next add ChrootDir directive, enter:
 ChrootDir /httpdjail
 
 Busque la Línea
