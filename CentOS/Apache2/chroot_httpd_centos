@@ -1,4 +1,4 @@
-chroot httpd centos and php 
+chroot httpd centos
 
 # J=/httpdjail
 # mkdir $J
@@ -16,8 +16,6 @@ Install mod_chroot
 # cd /opt/
 # wget http://core.segfault.pl/~hobbit/mod_chroot/dist/mod_chroot-0.5.tar.gz
 # tar -zxvf mod_chroot-0.5.tar.gz
-# cd mod_chroot-0.5
-# apxs -cia mod_chroot.c
 # C=/etc/httpd/conf/httpd.conf
 # vi $C
 
@@ -27,7 +25,6 @@ PidFile run/httpd.pid
 Reemplazarla con: 
 PidFile /var/run/httpd.pid
 
-Next add ChrootDir directive, enter:
 ChrootDir /httpdjail
 
 Busque la Línea
@@ -83,15 +80,10 @@ stop() {
         echo
         [ $RETVAL = 0 ] && rm -f ${lockfile} ${pidfile}
 }
-Save and close the file. Set immutable permission on /etc/init.d/httpd so that file cannot be modified, updated by yum, deleted or renamed, no link can be created to this file and no data can be written to the file. Only the superuser or a process possessing the CAP_LINUX_IMMUTABLE capability can set vor clear this attribute:
+Save and close the file. Set immutable permission on /etc/init.d/httpd so that file cannot be modified, updated by yum, deleted or renamed, no link can be created to this file and no data can be written to the file. Only the superuser or a process possessing the CAP_LINUX_IMMUTABLE capability can set or clear this attribute:
 # chattr +i /etc/init.d/httpd
 
 How do I start chrooted httpd?
 
 Type the following command:
 # /etc/init.d/httpd start
-
-Only chroot centos 5.5
-----------------------
-
-
