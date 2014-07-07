@@ -248,4 +248,44 @@ Match User eflores
         ForceCommand internal-sftp
         AllowTcpForwarding no
 
+Chroot ssh Centos
+
+# mkdir /httpdjail/var/www/html/denied.ich.edu.pe/
+# useradd -d /httpdjail/var/www/html/denied.ich.edu.pe/ -s /sbin/nologin -G users -G users eflores 
+# chown root:root /httpdjail/var/www/html/denied.ich.edu.pe/
+# mkdir /httpdjail/var/www/html/denied.ich.edu.pe/home/
+# chown eflores:users /httpdjail/var/www/html/denied.ich.edu.pe/home/
+
+Virtualhost in Centos
+
+[root@localhost ~]# vim /etc/httpd/conf/httpd.conf
+# Add Line 
+Include /etc/httpd/conf/vhosts.d/*.conf
+[root@localhost ~]# cd /etc/httpd/conf/vhosts.d/
+[root@localhost ~]# touch denied.ich.edu.pe.conf 
+
+# Pueden observar que no se considera a /httpdjail porque es la jaula sobre la que trabaja /var/www/html
+<VirtualHost *:80>
+        ServerName www.ich.edu.pe
+        ServerAlias denied.ich.edu.pe
+        ServerAdmin datacenter@ich.edu.pe
+        DocumentRoot /var/www/html/denied.ich.edu.pe/home
+        DirectoryIndex index.html index.php
+        ErrorDocument 404 /httpdjail/var/www/html/denied.ich.edu.pe/home/error-404.html
+        ErrorDocument 403 /httpdjail/var/www/html/denied.ich.edu.pe/home/error-403.html
+        LogLevel warn
+        ErrorLog /var/log/httpd/denied.ich.edu.pe-error.log
+        CustomLog /var/log/httpd/denied.ich.edu.pe-access.log common
+<Directory /var/www/html/denied.ich.edu.pe/home>
+        Options +FollowSymLinks +Multiviews
+        Allow from all
+</Directory>
+</VirtualHost>
+
+[root@localhost ~]# service httpd restart
+
+
+
+
+
 
