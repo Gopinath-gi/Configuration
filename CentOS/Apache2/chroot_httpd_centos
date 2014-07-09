@@ -184,5 +184,18 @@ root@localhost# vim /etc/hosts
 192.168.233.138 www.newtechnologies.net newtechnologies
 192.168.233.138 www.cybermatrix.com.pe cybermatrix.com.pe
 
+Si deseas puedes crear un archivo default para que toda dirección que no este en la virtual se redireccione por defecto ahi:
+
+<VirtualHost _default_:80>
+        DocumentRoot /vhosts/default
+        CustomLog /var/log/httpd/default-access.log common
+        <Directory /vhosts/default>
+        Options None
+        Allow from all
+        </Directory>
+</VirtualHost>
+
+
+
 
 
