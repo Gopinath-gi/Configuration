@@ -252,6 +252,7 @@ Chroot ssh Centos
 
 # mkdir /httpdjail/var/www/html/denied.ich.edu.pe/
 # useradd -d /httpdjail/var/www/html/denied.ich.edu.pe/ -s /sbin/nologin -G users -G users eflores 
+# passwd eflores
 # mkdir /httpdjail/var/www/html/denied.ich.edu.pe/home/
 # chown eflores:users /httpdjail/var/www/html/denied.ich.edu.pe/home/
 # service sshd restart
