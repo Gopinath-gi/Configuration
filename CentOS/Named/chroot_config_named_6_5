@@ -1,0 +1,101 @@
+install bind chroot in centos 6/5
+
+#yum -y install bind-chroot 
+#J=/var/named/chroot
+#touch $J/etc/named/named.conf 
+#mkdir $J/var/log/named/
+#chown -R named.named $J/var/log/named/
+#cp -rfv /usr/share/doc/bind-9.8.2/sample/var/named/named.ca $J/etc/named/db.root
+#vim $J/etc/named/named.conf 
+#mkdir $J/var/named/{INTERNA,EXTERNA}
+#chown -R named.named $J/var/named/INTERNA
+// Definición de ACLs
+acl local { localhost; };
+acl lan { 192.168.40.0/24; };
+
+// Opciones de configuración global
+options {
+        directory "/var/named";
+        forwarders {
+                8.8.8.8;
+                8.8.4.4;
+        };
+        forward first;
+        listen-on { 127.0.0.1; 192.168.40.1; };
+        allow-query { local; lan; };
+};
+
+// Configuración de logs
+logging {
+        channel seguridad {
+                file "/var/log/named/seguridad.log" versions 3 size 2m;
+                severity info;
+        };
+
+        channel consultas {
+                file "/var/log/named/consultas.log" versions 3 size 5m;
+                severity debug;
+        };
+
+        channel general {
+                syslog local4;
+                severity info;
+                print-category yes;
+        };
+
+        category queries { consultas; default_syslog; };
+        category security { seguridad; default_syslog; };
+        category xfer-in { general; };
+        category xfer-out { general; };
+        category notify { general; };
+        category lame-servers { general; };
+        category client { general; };
+        category resolver { general; };
+};
+
+// Una vista interna con declaración de zonas y permisos
+view "INTERNA" {
+        match-clients { lan; localhost; };
+        recursion yes;
+        notify yes;
+
+        zone "." {
+                type hint;
+                file "/etc/named/db.root";
+        };
+
+        zone "ich.edu.pe" IN {
+                type master;
+                file "/var/named/INTERNA/ich.edu.pe.INTERNA.db";
+                allow-transfer { 192.168.40.2; };
+        };
+
+        zone "40.168.192.in-addr.arpa" IN {
+                type slave;
+                file "/var/named/INTERNA/40.168.192.in-addr.arpa.db";
+                masters { 192.168.40.2; };
+        };
+};
+
+view "EXTERNA" {
+/* Coincide con cualquier otro cliente que no coincidió con la vista anterior.
+En esta vista podrían encajar los clientes de una red WAN o Internet */
+        match-clients { any; };
+        recursion no;
+        notify no;
+
+        zone "." {
+                type hint;
+                file "/etc/named/db.root";
+        };
+
+        zone "ich.edu.pe" IN {
+                type master;
+                file "/var/named/EXTERNA/ich.edu.pe.EXTERNA.db";
+                allow-transfer { none; };
+        };
+};
+
+# cat $J/var/named/INTERNA/ich.edu.pe.INTERNA.db
+
+
