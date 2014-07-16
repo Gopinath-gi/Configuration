@@ -98,4 +98,22 @@ En esta vista podrían encajar los clientes de una red WAN o Internet */
 
 # cat $J/var/named/INTERNA/ich.edu.pe.INTERNA.db
 
+# cat $J/var/named/data/INTERNA/40.168.192.in-addr.arpa.db
+$ORIGIN .
+$TTL 10800      ; 3 hours
+40.168.192.in-addr.arpa   IN SOA  ns1.ich.edu.pe. admin.ich.edu.pe. (
+                                2014071200 ; serial
+                                10800      ; refresh (3 hours)
+                                180        ; retry (3 minutes)
+                                2419200    ; expire (4 weeks)
+                                7200       ; minimum (2 hours)
+                                )
+                        NS      ns1.ich.edu.pe.
+                        NS      ns2.ich.edu.pe.
+$ORIGIN 40.168.192.in-addr.arpa.
+121                     PTR     instaladores.ich.edu.pe.
+125                     PTR     pxe.ich.edu.pe.
+157                     PTR     mail.ich.edu.pe.
+
+
 
