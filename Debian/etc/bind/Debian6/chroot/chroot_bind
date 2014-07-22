@@ -1,0 +1,107 @@
+#!/bin/bash
+apt-get install bind9 bind9-doc dnsutils -y --force-yes
+/etc/init.d/bind9 stop
+mkdir -p /var/chroot/bind9/{etc,dev,var/cache/bind,var/run/bind/run,var/log/named,var/named/{INTERNA,EXTERNA})}
+chown -R bind:bind /var/chroot/bind9/var/*
+mknod /var/chroot/bind9/dev/null c 1 3
+mknod /var/chroot/bind9/dev/random c 1 8
+chmod 666 /var/chroot/bind9/dev/{null,random}
+mv -v /etc/bind /var/chroot/bind9/etc
+ln -s /var/chroot/bind9/etc/bind /etc/bind
+cat>/etc/default/bind9<<"EOF"
+# run resolvconf?
+RESOLVCONF=yes
+ 
+# startup options for the server
+#OPTIONS="-u bind"
+OPTIONS="-u bind -t /var/chroot/bind9 -4"
+EOF
+
+cat>/etc/bind/named.conf.options<<"EOF"
+acl lan { 172.16.1.0/24; };
+options {
+        directory "/var/cache/bind";
+        forwarders {
+                8.8.8.8;
+		};
+	forward first;
+	listen-on { 127.0.0.1; 172.16.1.1; };
+	allow-query { localhost; lan; };
+        auth-nxdomain no;    # conform to RFC1035
+        listen-on-v6 { any; };
+};
+
+logging {
+	channel seguridad {
+		file "/var/log/named/seguridad.log" versions 3 size 2m; 
+		severity info;
+	};
+
+	channel consultas {
+		file "/var/log/named/consultas.log" versions 3 size 5m; 
+		severity debug; 
+	};
+
+	channel general {
+		syslog local4;
+		severity info;
+		print-category yes;
+	};
+
+	category queries { consultas; default_syslog; };
+	category security { seguridad; default_syslog; };
+	category client { general; };
+	category config { general; }; 
+	category resolver { general;};
+};
+// Una vista interna con declaración de zonas y permisos
+view "INTERNA" {
+        match-clients { lan; localhost; };
+        recursion yes;
+        notify yes;
+
+        zone "." {
+                type hint;
+                file "/etc/bind/db.root";
+        };
+
+        zone "ich.edu.pe" IN {
+                type master;
+                file "/var/named/INTERNA/ich.edu.pe.INTERNA.db";
+                allow-transfer { 192.168.40.2; };
+        };
+
+        zone "uch.edu.pe" IN {
+                type master;
+                file "/var/named/INTERNA/uch.edu.pe.INTERNA.db";
+                allow-transfer { 192.168.40.2; };
+        };
+
+        zone "40.168.192.in-addr.arpa" IN {
+                type slave;
+                file "/var/named/INTERNA/40.168.192.in-addr.arpa.db";
+                masters { 192.168.40.2; };
+        };
+};
+
+
+view "EXTERNA" {
+/* Coincide con cualquier otro cliente que no coincidió con la vista anterior.
+En esta vista podrían encajar los clientes de una red WAN o Internet */
+        match-clients { any; };
+        recursion no;
+        notify no;
+
+        zone "." {
+                type hint;
+                file "/etc/bind/db.root";
+        };
+
+        zone "ich.edu.pe" IN {
+                type master;
+                file "/var/bind/EXTERNA/ich.edu.pe.EXTERNA.db";
+                allow-transfer { none; };
+        };
+};
+
+EOF
