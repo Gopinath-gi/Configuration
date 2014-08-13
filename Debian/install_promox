@@ -43,9 +43,6 @@ deb http://download.proxmox.com/debian wheezy pve
 root@localhost# cd /usr/local/bin/
 root@localhost# vim boot.sh
 #!/bin/bash
-PATH=/usr/sbin/:/bin/
-GRUBINSTALL="grub-install"
-
 function _registerLog(){
 DISK=$1
 DATE=`date +%d-%m-%Y`
@@ -59,15 +56,80 @@ echo " " >> $LOG
 }
 
 for i in `ls /dev/sd[a-z]` ; do
-          $GRUBINSTALL $i
+          grub-install $i
           _registerLog $i
 done
+
+root@localhost# crontab -e 
+
 
 root@localhost# apt-get update && apt-get dist-upgrade
 
 root@localhost# apt-get install pve-firmware pve-kernel-2.6.32-26-pve
 
 root@localhost# apt-get install pve-headers-2.6.32-26-pve
+
+root@localhost# grub-install /dev/sda 
+root@localhost# grub-install /dev/sdb
+
+root@localhost# apt-get install pve-headers-2.6.32-26-pve
+
+root@localhost# cat /proc/mdstat
+[root@icholvvs01 ~]# cat /proc/mdstat
+Personalities : [raid1]
+md1 : active raid1 sda2[2] sdb2[1]
+      243871552 blocks super 1.2 [2/1] [_U]
+      [===>.................]  recovery = 17.1% (41914304/243871552) finish=67.2min speed=50046K/sec
+
+md0 : active raid1 sda1[2] sdb1[1]
+      194368 blocks super 1.2 [2/2] [UU]
+
+unused devices: <none>
+
+[root@icholvvs01 ~]# mdadm -D /dev/md0
+/dev/md0:
+        Version : 1.2
+  Creation Time : Sat Jan  5 15:08:06 2008
+     Raid Level : raid1
+     Array Size : 194368 (189.84 MiB 199.03 MB)
+  Used Dev Size : 194368 (189.84 MiB 199.03 MB)
+   Raid Devices : 2
+  Total Devices : 2
+    Persistence : Superblock is persistent
+
+    Update Time : Sat Jan  5 18:43:47 2008
+          State : clean
+ Active Devices : 2
+Working Devices : 2
+ Failed Devices : 0
+  Spare Devices : 0
+
+           Name : olivos:0
+           UUID : b054d407:8a50a109:6a087519:d785ee85
+         Events : 290
+
+    Number   Major   Minor   RaidDevice State
+       2       8        1        0      active sync   /dev/sda1
+       1       8       17        1      active sync   /dev/sdb1
+
+[root@icholvvs01 ~]# fdisk -l /dev/sd[a-z]
+
+[root@icholvvs01 ~]# mdadm --add /dev/md0 /dev/sda1
+[root@icholvvs01 ~]# mdadm -D /dev/md0
+[root@icholvvs01 ~]# watch -n 0.1 cat /proc/mdstat
+[root@icholvvs01 ~]# mdadm -D /dev/md0
+[root@icholvvs01 ~]# cd /boot/
+[root@icholvvs01 ~]# grub-install /dev/sda
+[root@icholvvs01 ~]# grub-install /dev/sdb
+[root@icholvvs01 ~]# mdadm -D /dev/md0
+[root@icholvvs01 ~]# mdadm -D /dev/md1
+[root@icholvvs01 ~]# mdadm --add /dev/md1 /dev/sda2
+[root@icholvvs01 ~]# mdadm -D /dev/md1
+[root@icholvvs01 ~]# watch -n 0.1 cat /proc/mdstat
+
+
+
+
 
 
 
