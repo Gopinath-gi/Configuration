@@ -1,0 +1,40 @@
+Equipo: Debian 7 64 bits
+Discos: 2 cada uno de 250 MB 
+
+Bridge in debian 
+root@olivos:~# apt-get install bridge-utils
+root@olivos:~# vim /etc/network/interfaces
+auto lo
+iface lo inet loopback
+
+auto eth0
+iface eth0 inet manual
+
+auto eth1
+iface eth1 inet manual
+
+auto vmbr0
+iface vmbr0 inet static
+address 172.16.7.134
+netmask 255.255.255.224
+gateway 172.16.7.158
+bridge-ports eth0
+bridge-sftp off
+bridge-fd 0
+
+
+auto vmbr1
+iface vmbr1 inet static
+address 192.168.1.1
+netmask 255.255.255.224
+bridge-ports eth1
+bridge-sftp off
+bridge-fd 0
+
+
+root@olivos:~# vim /etc/hostname 
+icholvvs01.ich.edu.pe
+root@olivos:~# vim /etc/hosts
+192.168.1.1     icholvvs01.ich.edu.pe icholvvs01
+root@localhost# vim /etc/apt/sources.list
+deb http://download.proxmox.com/debian wheezy pve
