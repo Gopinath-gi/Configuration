@@ -1,0 +1,24 @@
+***************************************************************************
+                           NOTICE TO USERS
+
+This computer system is for authorized use only. Use of this system
+constitutes consent to security monitoring and testing. All activity is
+logged with your host name and IP address.
+
+Any or all uses of this system and all files on this system may be
+intercepted, monitored, recorded, copied, audited, inspected, and disclosed
+to law enforcement personnel, as well as authorized officials of other
+agencies, both domestic and foreign.
+
+Unauthorized or improper use of this system may result in administrative
+disciplinary action and civil and criminal penalties. By continuing to use
+this system you indicate your awareness of and consent to these terms and
+conditions of use. LOG OFF IMMEDIATELY if you do not agree to the conditions
+stated in this warning.
+
+*****************************************************************************
+
+root@localhost# vim /etc/ssh/sshd_config
+Banner /etc/issue.net
+root@localhost# /etc/init.d/sshd restart 
+

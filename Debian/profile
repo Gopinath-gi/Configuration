@@ -1,0 +1,11 @@
+
+# Formato del historial de comandos
+export HISTTIMEFORMAT="%d/%m/%Y %H:%M:%S "
+
+# Tama?o maximo del historial de comandos
+export HISTSIZE=2000
+
+# Inactividad maxima de sesion antes de ser cerrada
+export TMOUT=300
+
+export EDITOR=vim
