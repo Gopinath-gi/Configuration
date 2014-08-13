@@ -37,4 +37,37 @@ icholvvs01.ich.edu.pe
 root@olivos:~# vim /etc/hosts
 192.168.1.1     icholvvs01.ich.edu.pe icholvvs01
 root@localhost# vim /etc/apt/sources.list
-deb http://download.proxmox.com/debian wheezy pve
+deb http://download.proxmox.com/debian wheezy pve 
+
+#Creacion de un script de sincronización 
+root@localhost# cd /usr/local/bin/
+root@localhost# vim boot.sh
+#!/bin/bash
+PATH=/usr/sbin/:/bin/
+GRUBINSTALL="grub-install"
+
+function _registerLog(){
+DISK=$1
+DATE=`date +%d-%m-%Y`
+HORA=`date +%H:%M`
+LOG=/var/log/history/.reportsgrub.root
+echo " "
+echo -n $DATE >> $LOG
+echo -n " Install grub in $DISK" >> $LOG
+echo -n " $HORA" >> $LOG
+echo " " >> $LOG
+}
+
+for i in `ls /dev/sd[a-z]` ; do
+          $GRUBINSTALL $i
+          _registerLog $i
+done
+
+root@localhost# apt-get update && apt-get dist-upgrade
+
+root@localhost# apt-get install pve-firmware pve-kernel-2.6.32-26-pve
+
+root@localhost# apt-get install pve-headers-2.6.32-26-pve
+
+
+
