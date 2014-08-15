@@ -127,6 +127,30 @@ Working Devices : 2
 [root@icholvvs01 ~]# mdadm -D /dev/md1
 [root@icholvvs01 ~]# watch -n 0.1 cat /proc/mdstat
 
+apt-get remove linux-image-amd64 linux-image-3.2.0-4-amd64 linux-base
+
+Descargar plantillas por S.O ( 32 bits )
+
+ vzctl enter 100 
+
+Habilitar iptables en una plantilla de Debian
+#############################################
+ Si estamos utilizando un sistema Plesk, en una maquina virtualizada con Proxmox con tecnologia open VZ e intentamos hacer uso del firewall de plesk, es muy probable que no funcione, para ello, debemos de activar  ip tables del host sobre el servidor dedicado que deseamos realizar el cambio.
+
+Activación de iptables en nodo host:
+
+1. Debemos de abrir mediante una consola SSH el fichero vz.conf con el comando
+
+pico /etc/vz/vz.conf
+2. Borramos o comentamos la linea actual que aparece con IPTABLES= y añadimos la siguiente linea:
+
+IPTABLES="ipt_REJECT ipt_recent ipt_owner ipt_REDIRECT ipt_tos ipt_TOS ipt_LOG ip_conntrack ipt_limit ipt_multiport iptable_filter iptable_mangle ipt_TCPMSS ipt_tcpmss ipt_ttl ipt_length ipt_state iptable_nat ip_nat_ftp"
+
+Guardamos los cambios y reiniciamos el servicio VZ.
+
+/etc/init.d/vz restart
+Una vez reiniciado, ya podremos usar iptables en nuestras maquinas virtuales, y funcionará correctamente el firewall de plesk sobre linux.
+
 
 
 
