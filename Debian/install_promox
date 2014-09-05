@@ -31,7 +31,7 @@ bridge-ports eth1
 bridge-sftp off
 bridge-fd 0
 
-
+#Check /etc/hosts
 root@olivos:~# vim /etc/hostname 
 icholvvs01.ich.edu.pe
 root@olivos:~# vim /etc/hosts
@@ -60,8 +60,27 @@ for i in `ls /dev/sd[a-z]` ; do
           _registerLog $i
 done
 
-root@localhost# crontab -e 
+root@localhost# chmod 755 /usr/local/bin/boot.sh 
 
+root@localhost# crontab -e 
+*/5 * * * * /usr/local/bin/boot.sh 
+
+root@localhost# grub-install /dev/sda 
+root@localhost# grub-install /dev/sdb
+
+#Install Proxmox VE 
+
+root@localhost# nano /etc/apt/sources.list
+
+deb http://ftp.at.debian.org/debian wheezy main contrib
+# PVE repository provided by proxmox.com, only for installation (this repo will stay on 3.1)
+deb http://download.proxmox.com/debian wheezy pve
+# security updates
+deb http://security.debian.org/ wheezy/updates main contrib
+# En caso de tener una arquitectura amd64 
+deb [arch=amd64] http://download.proxmox.com/debian wheezy pve
+
+root@localhost# wget -O- "http://download.proxmox.com/debian/key.asc" | apt-key add -
 
 root@localhost# apt-get update && apt-get dist-upgrade
 
@@ -69,10 +88,22 @@ root@localhost# apt-get install pve-firmware pve-kernel-2.6.32-26-pve
 
 root@localhost# apt-get install pve-headers-2.6.32-26-pve
 
-root@localhost# grub-install /dev/sda 
-root@localhost# grub-install /dev/sdb
+Reboot: Now restart the system using the Proxmox VE kernel. 
 
-root@localhost# apt-get install pve-headers-2.6.32-26-pve
+root@localhost# reboot -f 
+
+root@localhost# uname -a 
+
+Remove old debian kernel 
+root@localhost# apt-get remove linux-image-amd64 linux-image-3.2.0-4-amd64 linux-base
+
+Actualiza grub del kernel 
+root@localhost# update-grub
+
+Instalar proxmox
+root@localhost# apt-get install proxmox-ve-2.6.32 ntp ssh lvm2 postfix ksm-control-daemon vzprocps open-iscsi bootlogd 
+
+# Verificar la sincronización del raid
 
 root@localhost# cat /proc/mdstat
 [root@icholvvs01 ~]# cat /proc/mdstat
@@ -132,6 +163,17 @@ apt-get remove linux-image-amd64 linux-image-3.2.0-4-amd64 linux-base
 Descargar plantillas por S.O ( 32 bits )
 
  vzctl enter 100 
+
+# Habilitar el proxmox para que no te pida el registro
+/usr/share/pve-manager/ext4/pvemanagerlib.js
+linea 454
+comenta ese if (data.status !== 'Active')
+y lo reemplazas por
+if (false)
+
+# Habilitar tcp_dump 
+vzctl set NumNum --capability=net_admin:on --save  
+
 
 Habilitar iptables en una plantilla de Debian
 #############################################
