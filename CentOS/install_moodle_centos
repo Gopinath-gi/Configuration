@@ -1,0 +1,172 @@
+INSTALANDO MOODLE 2.6 EN CENTOS 6.5 (PASO A PASO)
+A continuación les dejo un manual paso a paso de como realizar la instalación
+de Moodle 2.6 en Centos 6.5; Yo instalé la versión mínima de Centos por lo que
+es necesario instalar cada una de las dependencias, si su instalación de Centos es
+más completa seguramente ya contarán con muchos de los paquetes que aqui
+instalo manualmente.
+
+Espero les sea de ayuda.
+
+1. INSTALAR MYSQL
+——————————————————————————————————-
+#yum install mysql mysql-server
+——————————————————————————————————-
+
+arrancar el servicio
+——————————————————————————————————-
+#service mysqld start
+——————————————————————————————————-
+
+entrar a mysql y verificar versión
+——————————————————————————————————-
+#mysql
+——————————————————————————————————-
+
+establecer contraseña root
+——————————————————————————————————-
+#mysqladmin –u root password rootpass
+——————————————————————————————————-
+
+2. INSTALAR APACHE
+——————————————————————————————————-
+#yum install httpd
+——————————————————————————————————-
+
+antes de probar verificar que el firewall este detenido
+——————————————————————————————————-
+#service iptables status
+——————————————————————————————————-
+
+en caso de estar activo denterlo
+——————————————————————————————————-
+#service iptables stop
+——————————————————————————————————-
+
+3. INSTALAR PHP
+——————————————————————————————————-
+#yum install php php-common php-mysql php-gd php-intl php-curl php-xmlrpc php-ldap php-apc php-mbstring php-dom php-soap
+——————————————————————————————————-
+
+verificar version instalada
+——————————————————————————————————-
+#php -v
+——————————————————————————————————-
+
+Definir los servicios para arrancar al inicio, deshabilitar iptables y reiniciar el equipo para validar
+que todo arranque correctamente
+——————————————————————————————————-
+#setup
+——————————————————————————————————-
+
+en caso de no estar instalada instalar setuptool
+——————————————————————————————————-
+#yum install setuptool system-config-securitylevel-tui authconfig system-config-network-tui ntsysv
+——————————————————————————————————-
+
+4. DESCARGAR FUENTES:
+
+instalar wget si no se tiene
+——————————————————————————————————-
+#yum install wget
+——————————————————————————————————-
+
+descargar fuentes:
+——————————————————————————————————-
+#cd /usr/src/
+#wget http://download.moodle.org/download.php/direct/stable26/moodle-latest-26.tgz
+——————————————————————————————————-
+
+descomprimir:
+——————————————————————————————————-
+#tar -zxvf moodle-latest-26.tgz
+——————————————————————————————————-
+
+y verificamos con ls
+
+##############INSTALAR MOODLE#########################
+
+5. CREAR BASE DE DATOS
+——————————————————————————————————-
+mysql -u root -p
+——————————————————————————————————-
+
+crear la base de datos:
+——————————————————————————————————-
+>CREATE DATABASE moodledb;
+>GRANT ALL PRIVILEGES ON moodledb.* TO ‘moodleusr’@’localhost’ IDENTIFIED BY ‘moodlepass';
+>FLUSH PRIVILEGES;
+>EXIT
+——————————————————————————————————-
+
+6. COPIA Y CREACION DE DIRECTORIOS
+
+regresamos a nuestro directorio origen y movemos la carpeta moodle a /var/www/html/
+——————————————————————————————————-
+#mv /usr/src/moodle /var/www/html/.
+——————————————————————————————————-
+
+le asignamos el grupo y usuario de apache
+——————————————————————————————————-
+#chown -R apache:apache /var/www/html/moodle/
+——————————————————————————————————-
+
+creamos nuestra carpeta data
+——————————————————————————————————-
+#mkdir /var/moodle
+#mkdir /var/moodle/data
+#chown -R apache:apache /var/moodle
+#chmod -R 755 /var/moodle
+——————————————————————————————————-
+
+vamos a nuestra carpeta
+——————————————————————————————————-
+#cd /var/www/html/moodle/
+——————————————————————————————————-
+
+copiamos el archivo config-dist.php a config.php
+——————————————————————————————————-
+#cp config-dist.php config.php
+——————————————————————————————————-
+
+lo editamos
+——————————————————————————————————-
+#vi config.php
+——————————————————————————————————-
+
+y definimos nuestros valores de mysql
+——————————————————————————————————-
+$CFG->dbtype    = ‘mysqli';      // ‘pgsql’, ‘mariadb’, ‘mysqli’, ‘mssql’, ‘sqlsrv’ or ‘oci’
+$CFG->dblibrary = ‘native';     // ‘native’ only at the moment
+$CFG->dbhost    = ‘localhost';  // eg ‘localhost’ or ‘db.isp.com’ or IP
+$CFG->dbname    = ‘moodledb';     // database name, eg moodle
+$CFG->dbuser    = ‘moodleusr';   // your database username
+$CFG->dbpass    = ‘moodleusr';   // your database password
+$CFG->prefix    = ‘mdl_';       // prefix to use for all table names
+
+$CFG->wwwroot   = ‘http://nuestra-ip/moodle ‘;
+
+$CFG->dataroot  = ‘/var/moodle/data';
+——————————————————————————————————-
+
+si durante la instalación de nos muestra lo siguiente:
+——————————————————————————————————-
+PHP opcode caching improves performance and lowers memory requirements, OPcache extension is recommended and fully supported.
+——————————————————————————————————-
+
+se puede ignorar si usamos php 5.3 o superior
+
+si se desea asignar más memoria a php entonces:
+——————————————————————————————————-
+#vi /etc/php.ini
+——————————————————————————————————-
+
+y aumentar de:
+——————————————————————————————————-
+memory_limit = 128M
+——————————————————————————————————-
+a
+——————————————————————————————————-
+memory_limit = 528M
+——————————————————————————————————-
+
+continuar con el wizard de moodle desde el explorador….
