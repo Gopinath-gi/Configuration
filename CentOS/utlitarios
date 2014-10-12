@@ -1,0 +1,29 @@
+install vim in centos 
+yum -y install vim-enhanced
+
+touch .vimrc 
+set history=700				" Sets how many lines of history VIM has to remember
+
+colo delek
+syntax on
+
+set showmode
+
+set autoindent
+set smartindent
+set backspace=eol,start,indent
+
+set expandtab
+set tabstop=4
+set shiftwidth=4
+set ruler
+
+set number
+set ignorecase
+set smartcase
+set hlsearch
+set backup
+set backupdir=~/vim/tmp/
+set nowrap
+set laststatus=2
+set cmdheight=2

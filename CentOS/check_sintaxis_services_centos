@@ -1,0 +1,495 @@
+En UNIX y Linux por lo general, los servicios se configuran con varios archivos de texto, en el directorio /etc/. Un típico servidor podría tener docenas de archivos de configuración. Es importante que compruebe la validez del archivo de configuración. En algunos casos, es posible comprobar la cordura de los datos especiales o directorios (por ejemplo, /var/lib/cache/). Los archivos de texto son más fáciles de administrar de forma remota. Puede utilizar ssh y un editor de texto. Si hay un error en la configuración, el servidor no podrá comenzar. Esto puede resultar en un desastre. En este artículo voy a explicar como descubrir un error de sintaxis para los archivos de configuración más populares y prueba de los errores de sintaxis. 
+
+ 
+¡Alto! Compruebe la configuración del servidor antes de reiniciar los servicios Unix / Linux.
+Si no lo hace
+
+Las siguientes opciones no arracarán el servidor (o detendrá la ejecución del servidor), por lo que se prueba el archivo de configuración y luego se sale.
+Se comprobará la configuración para saber si la sintaxis es correcta.
+El archivo de configuración se analiza y se comprueban los errores de sintaxis, junto con todos los archivos incluidos en el archivo de configuración del servidor.
+En la mayoría de los casos también puede especificar qué archivo de configuración se debe utilizar en lugar de la predeterminada.
+Una vez que haya verificado los archivos de configuración corrija cualquier error que usted puede seguir adelante y volver a cargar o reiniciar los servicios necesarios.
+Una nota acerca de Recarga de Servidores
+La sintaxis es la siguiente en Linux:
+
+
+/sbin/service SERVICE-NAME [reload|restart]
+
+
+O
+
+
+/etc/init.d/SERVICE-NAME [reload|restart]
+
+
+La opción reload recarga el archivo de configuración sin interrumpir las operaciones pendientes.
+
+Por ejemplo, el siguiente comando recarga el servidor web Apache después de los cambios en los archivos de configuración:
+
+
+# /sbin/service httpd reload
+
+
+Sin embargo, la mayoría de los daemons Unix / Linux a veces usan como una señal SIGHUP a sí mismos para reiniciar, la razón más común para esto es que vuelva a leer el archivo de configuración que se ha cambiado. La sintaxis es la siguiente:
+
+
+kill -HUP $(cat /var/run/SERVICE.pid)
+
+
+O
+
+
+kill -HUP `cat /var/run/SERVICE.pid`
+
+# 1: El servidor OpenSSH
+Puede utilizar la sintaxis siguiente para probar el archivo de configuración de OpenSSH, escriba:
+
+
+# /usr/sbin/sshd -t && echo $?
+
+
+Un ejemplo de configuración de prueba de error
+
+
+# /usr/sbin/sshd -t
+
+
+Salidas de muestra:
+
+/etc/ssh/sshd_config line 26: Bad yes/without-password/forced-commands-only/no argument: Naa
+Para imprimir la línea # 26, escriba:
+
+
+# sed -n '26p' /etc/ssh/sshd_config
+
+
+Salidas de muestra:
+
+  PermitRootLogin Naa 
+Utilice un editor de texto como vi para editar el archivo, escriba:
+
+
+# vi +26 etc/ssh/sshd_config
+
+
+Por último para actualizar la sintaxis, escriba:
+
+  PermitRootLogin No
+Guarde y cierre el archivo. Pruebe de nuevo:
+
+
+# /usr/sbin/sshd -t
+
+OpenSSH Extended modo de prueba
+Utilice la opción -T para verificar la validez del archivo de configuración, la configuración de salida de efectivo a la salida estándar (pantalla) y luego la salida:
+
+
+# /usr/sbin/sshd -T 
+Ver también: openssh mejores prácticas de seguridad del servidor para obtener más información.
+
+# 2: Apache Web Server
+La siguiente sintaxis ejecuta la prueba para los archivos de configuración solamente: 
+# /usr/sbin/apache2 -t
+
+
+Ejemplo de informe de errores:
+
+apache2: Syntax error on line 50 of /etc/apache2/apache2.conf: ServerRoot must be a valid directory
+En Red Hat Enterprise Linux y amigo, escriba:
+
+
+# /usr/sbin/httpd -t
+
+
+Salidas de muestra:
+
+  Sintaxis OK 
+También puede utilizar el comando apachectl (pasa configtest o la opción -t). Se ejecutará una prueba de archivo de sintaxis de configuración. Analiza los archivos de configuración y, o bien revele información Sintaxis Ok o detallada sobre el error de sintaxis particular:
+
+
+# apachectl configtest
+
+
+O 
+# apachectl -t
+
+
+Actualizar servidor Apache , escriba:
+
+
+# apachectl -k graceful
+
+# 3: Nginx Web Server
+Para ejecutar las pruebas de sintaxis para los archivos de configuración de nginx, escriba:
+
+
+# /usr/local/nginx/sbin/nginx -t 
+# /usr/local/nginx/sbin/nginx -t -c /usr/local/nginx/conf/nginx.conf
+
+
+Salidas de muestra:
+
+# /usr/local/nginx/sbin/nginx -t
+# /usr/local/nginx/sbin/nginx -t -c /usr/local/nginx/conf/nginx.conf
+Cuando,
+
+-c / ruta / al / archivo: Especificar qué Nginx archivo de configuración debe utilizar en lugar de la predeterminada.
+-t: Sólo probar el archivo de configuración.
+# 4: Servidor Lighttpd Web
+Para probar la config-file, escriba:
+
+
+# /usr/local/sbin/lighttpd -t -f /usr/local/etc/lighttpd/cyberciti.biz/lighttpd.conf
+
+
+Salidas de muestra:
+
+  Sintaxis OK 
+Cuando,
+
+-f nombre de archivo: nombre de archivo Uso de la config-file.
+-t: Prueba config-file.
+# 5: BIND (named) Servidor DNS
+Utilice el comand named-checkconf para comprobar la sintaxis, pero no la semántica. El archivo se analiza y se comprueban los errores de sintaxis, junto con todos los archivos incluidos así:
+
+
+# named-checkconf /etc/named.conf
+
+
+También puede comprobar los archivos de vinculación de la zona, así:
+
+
+# named-checkzone cyberciti.biz /var/named/zone.cyberciti.biz
+
+# 6: Servidor proxy Squid
+Para analizar y probar el archivo de configuración, escriba:
+
+
+# /usr/sbin/squid -k check 
+# /usr/sbin/squid -k parse
+
+
+La salida muestra:
+
+2012/03/30 07:44:35| Processing Configuration File: /etc/squid/squid.conf (depth 0)
+2012/03/30 07:44:35| Initializing https proxy context
+# 7: MySQL (mysqld) Servidor de Base de Datos
+Escriba el siguiente comando:
+
+
+# mysqld --verbose --help
+
+
+Lo anterior se procduce salida muy alta. Recomiendo redirigir la salida a un error de pantalla /dev/null y quedarse solamente con los mensajes de advertencia en la pantalla
+
+
+# /usr/libexec/mysqld --verbose --help 1>/dev/null
+
+
+La salida muestra:
+
+120330  7:52:43 [Warning] '--log_slow_queries' is deprecated and will be removed in a future release. \
+Please use ''--slow_query_log'/'--slow_query_log_file'' instead.
+Se puede especificar un nuevo archivo de configuración como / root / my.cnf test-
+
+
+# mysqld --defaults-file=/root/test-my.cnf --verbose --help 1>/dev/null
+
+# 8: Postfix Mail Server (MTA)
+Utilice la sintaxis siguiente. Para advertir sobre mala directorio / fichero propiedad o los permisos y crear directorios que faltan, entre:
+
+
+# postfix check 
+O 
+# postfix -vvv
+
+
+La salida muestra:
+
+  postfix: dict_register: 1 mail_dict
+ postfix: dict_update: config_directory = / etc / postfix
+ postfix: dict_update: queue_directory = / var / spool / postfix
+ postfix: dict_update: command_directory = / usr / sbin
+ postfix: dict_update: daemon_directory = / usr / libexec / postfix
+ postfix: dict_update: data_directory = / var / lib / postfix
+ postfix: dict_update: mail_owner = sufijo
+ postfix: dict_update: inet_interfaces = localhost
+ postfix: dict_update: inet_protocols = todos
+ postfix: dict_update:. mydestination = $ myhostname localhost, $ mydomain, localhost
+ postfix: dict_update: unknown_local_recipient_reject_code = 550
+ postfix: fatal: / etc / postfix / main.cf línea, 385: falta '=' después del nombre de atributo: "sss" 
+Usted puede ver los errores en el archivo de registro de registro de correo, escriba: 
+# tail -f /var/log/maillog 
+Salidas de muestra:
+
+postfix: dict_register: mail_dict 1
+postfix: dict_update: config_directory = /etc/postfix
+postfix: dict_update: queue_directory = /var/spool/postfix
+postfix: dict_update: command_directory = /usr/sbin
+postfix: dict_update: daemon_directory = /usr/libexec/postfix
+postfix: dict_update: data_directory = /var/lib/postfix
+postfix: dict_update: mail_owner = postfix
+postfix: dict_update: inet_interfaces = localhost
+postfix: dict_update: inet_protocols = all
+postfix: dict_update: mydestination = $myhostname, localhost.$mydomain, localhost
+postfix: dict_update: unknown_local_recipient_reject_code = 550
+postfix: fatal: /etc/postfix/main.cf, line 385: missing '=' after attribute name: "sss"
+# 9: Samba (SMB / CIFS) del servidor de archivos
+Escriba el siguiente comando:
+
+
+# testparm -v
+
+# 10: tcpd
+El programa tcpd se puede configurar para supervisar las solicitudes entrantes de telnet, finger, ftp, exec, rsh, rlogin, tftp, talk, Comsat y otros servicios que tienen una correspondencia uno-a-uno en archivos ejecutables. El comando tcpdchk examina la configuración del envoltorio tcp e informa de todos los problemas potenciales y reales que puede encontrar:
+
+
+# tcpdchk 
+# tcpdchk -a 
+# tcpdchk -d 
+# tcpdchk -i /path/to/inetd.conf 
+# tcpdchk -v 
+Cuando,
+
+-a: Informe de las reglas de control de acceso que permitan el acceso sin una explícita  palabra clave ALLOW.
+-d: Examinar los archivos hosts.allow y hosts.deny en el directorio actual en lugar de llas entradas por defecto.
+-i inet_conf: Especifique esta opción cuando tcpdchk no puede encontrar el archivo inetd.conf  de la configuración de la red, o cuando se sospecha que el programa usa la equivocada.
+-v: muestra el contenido de cada regla de control de acceso. Daemon listas, listas de clientes, los comandos de shell y opciones se presentan en un formato bastante elegante, lo que hace que sea más fácil para usted para detectar cualquier discrepancia entre lo que quieres y lo que comprende el programa.
+# 11: El servidor dhcpd
+El Internet Systems Consortium DHCP Server, el dhcpd, implementa el protocolo de configuración dinámica de host (DHCP) y el Internet Bootstrap Protocol (BOOTP). DHCP permite a los hosts en una red TCP / IP solicitar y asignar direcciones IP, y también para descubrir información acerca de la red a la que están unidos. BOOTP proporciona una funcionalidad similar, con ciertas restricciones. Para comprobar la sintaxis utilice la siguiente opción:
+
+
+# dhcpd -t 
+O 
+# dhcpd -t -cf /path/to/dhcpd.testing.conf 
+O 
+# dhcpd -T 
+O 
+# dhcpd -T -lf /path/to/dhcpd.lease.file
+
+Cuando,
+
+-t: La bandera de la camiseta, se especifica, el servidor simplemente probar el archivo de configuración para la sintaxis correcta, pero no intentará realizar operaciones de red. Esto se puede utilizar para probar el archivo una nueva configuración de forma automática antes de instalarlo.
+-T: Esta bandera se puede utilizar para probar el archivo de base de datos de arrendamiento de una manera similar.
+-cf / ruta / al / dhcpd.testing.conf: Utilizar un archivo de configuración alternativo llamado / ruta / a / dhcpd.testing.conf.
+-lf / ruta / al / dhcpd.lease.file: un archivo de arriendos alterno llamado-lf / ruta / al / dhcpd.lease.file
+# 12: Servidor FTP vsftpd
+vsftpd es la transferencia de archivos muy seguro demonio del Protocolo. Utilice el comando siguiente para crear el archivo de configuración esté libre de errores de sintaxis:
+
+
+# vsftpd
+
+
+O
+
+
+# vsftpd -olisten=NO /path/to/vsftpd.testing.conf
+
+
+Ese ejemplo se reemplaza vsftpd incorporado de forma predeterminada para el "escuchar" para ser NO, pero luego carga la configuración desde / ruta / a / vsftpd.testing.conf.
+
+# 13: Nagios
+Nagios es un popular sistema de código abierto para el monitoreo de red y de las infraestructura de aplicaciones de software de monitoreo. Utilice la sintaxis siguiente para ejecutar una comprobación de coherencia en nagios.cfg de la siguiente manera:
+
+
+# nagios -v /path/to/testing/nagios.cfg 
+Cuando,
+
+-v: Verifique su configuración.
+# 14: Servidor OpenNTPD
+El demonio ntpd sincroniza el reloj local con uno o más servidores NTP remotos o locales de sensores timedelta. ntpd también puede actuar como un servidor NTP en sí, la redistribución de la hora local. Utilice la sintaxis siguiente para ejecutar una comprobación de coherencia en ntpd.conf:
+
+
+# ntpd -n 
+# ntpd -f /usr/local/etc/ntpd.conf -n 
+# ntpd -d -f /usr/local/etc/ntpd.conf -n 
+Cuando,
+
+-n: Sólo comprobar el archivo de configuración es válida.
+-f / usr / local / etc / ntpd.conf: Uso / usr / local / etc / ntpd.conf archivo como el archivo de configuración, en lugar del predeterminado / etc / ntpd.conf.
+-d: No daemonize y ntpd se ejecutará en segundo plano y acceder a stderr .
+# 15: Xorg - El servidor X11
+Linux y Unix como sistema operativo usa X11 para proporcionar a los usuarios una interfaz gráfica de usuario de gran alcance. X11 es una versión libre disposición del sistema de ventanas X que se implementa en Xorg. El xorg.conf por defecto se encuentra en el directorio / etc/X11. Puede crear un archivo de configuración inicial, simplemente ejecutando el siguiente comando:
+
+
+# Xorg -configure
+
+
+Para probar la configuración existente para verificar que Xorg puede trabajar con el hardware gráfico del sistema de destino, escriba:
+
+
+# Xorg -config /path/to/xorg.conf.new -retro
+
+
+Tenga en cuenta que el nuevo Xorg es en gran medida auto-configuradas y no necesita uno. Sin embargo, si utiliza unidades de propiedad (digamos Nvidia) o de otro tipo que usted necesita para poner a prueba la sintaxis de Xorg usando el método anteriormente descrito.
+
+# 16: syslogd / rsyslogd
+syslogd es Unix / Linux servidor de registro del sistema. rsyslogd syslogd es fiable y moderna extendida para distribuciones Linux. Rsyslogd se deriva del paquete sysklogd que a su vez se deriva de las fuentes de BSD de stock. Para comprobar si hay errores de sintaxis, escriba:
+
+
+# syslogd -f /etc/rsyslog.testing.conf -d
+
+
+O
+
+
+rsyslogd -c4 -f /etc/rsyslog.testing.conf -N 1
+
+
+Salidas de muestra:
+
+rsyslogd: version 4.6.4, config validation run (level 1), master config /etc/rsyslog.conf
+rsyslogd: invalid or yet-unknown config file command - have you forgotten to load a module?\
+ [try http://www.rsyslog.com/e/3003 ]
+rsyslogd: the last error occured in /etc/rsyslog.conf, line 11:"$FilesOnwer root"
+rsyslogd: CONFIG ERROR: could not interpret master config file '/etc/rsyslog.testing.conf'. \
+[try http://www.rsyslog.com/e/2124 ]
+Una comprobación de validez sin errores:
+
+rsyslogd: version 4.6.4, config validation run (level 1), master config /etc/rsyslog.testing.conf
+rsyslogd: End of config validation run. Bye.
+Cuando,
+
+-c4: Selecciona el modo de compatibilidad con versiones anteriores deseado (en este ejemplo es # 4).
+-f /etc/rsyslog.testing.conf: Especifique un archivo de configuración alternativo en lugar de / etc / rsyslog.conf, que es el valor predeterminado.
+-d: modo de depuración (aplicable solo con syslogd)
+-N 1: Haga una revisión del archivo de configuración. No se ejecutan en modo normal, sólo echa un correcto archivo de configuración. Esta opción está destinada a verificar un archivo de configuración. El argumento nivel modifica el comportamiento. Actualmente, 0 es el mismo que no especificar la opción N-en absoluto (de modo que esto tiene sentido limitado) y 1 realmente activa el código. Más tarde, los niveles más altos significa más verbosidad (esta es una opción con visión de compatibilidad).
+# 17: Sistema de impresión CUPS
+CUPS es la basada en estándares de sistemas abiertos impresión fuente desarrollado por Apple, para Mac OS X y otros sistemas operativos UNIX / Linux-como. cupsd es el planificador de CUPS. Se implementa un sistema de impresión basado en el protocolo de impresión de Internet, versión 2.1. Para probar los archivos de configuración para el tipo de error:
+
+
+# cupsd -f -c /path/to/cupsd.testing.conf -t
+
+
+Salidas de muestra:
+
+Unknown directive Loggslevel on line 6.
+/etc/cups/cupsd.conf is O
+Una comprobación de validez sin errores:
+
+/etc/cups/cupsd.conf is OK
+Cuando,
+
+-f: Ejecutar cupsd en primer plano; por defecto se ejecuta en segundo plano como un "demonio".
+-c /ruta/a/cupsd.testing.conf: utiliza la ruta de acceso / / a / cupsd.testing.conf archivo de configuración.
+-t: 
+Pruebe el archivo de configuración de errores de sintaxis.
+# 18: Stand-alone slapd LDAP Daemon
+OpenLDAP es una implementación de software libre, de código abierto del Lightweight Directory Access Protocol (LDAP) desarrollado por el proyecto OpenLDAP. Para probar si el archivo de configuración es correcta o no, de tipo:
+
+
+# slapd -Tt
+
+
+O
+
+
+# slapd -Tt -f /path/to/slapd-config.conf
+
+
+Cuando,
+
+-Tt: Prueba para los errores del archivo de configuración.
+-f / ruta / a / slapd-config.conf: Especifica el archivo de configuración de slapd. El valor predeterminado es / etc / openldap / slapd.conf.
+# 19: varnishd - Acelerador HTTP Daemon
+Para probar varnishd sintaxis vlc, escriba: 
+# varnishd -C -f /path/to/wordpress.vlc 
+Cuando,
+
+-C: Imprimir Código VCL compilado a lenguaje C y de salida. Especifique el archivo de VCL para compilar con la opción-f.
+-F / ruta / a / wordpress.vlc: Utilice este archivo de configuración VCL en lugar del predeterminado incorporado.
+# 20: MTA exim
+Pasa la opción-bV a exim. Si hay cualquier error en el archivo de configuración, Exim emite mensajes de error. De lo contrario, envía el número de versión y la fecha de creación, la biblioteca de DBM que se utiliza, y la información acerca de que los conductores y otros módulos de código opcionales se incluyen en el binario.
+
+
+# exim -bV
+
+
+Algunas pruebas sencillas de enrutamiento se puede hacer mediante el uso de la opción de prueba de direcciones. Por ejemplo,
+
+
+# exim -bt <local username>
+
+
+Los usuarios administradores pueden probar la configuración de escaneo de malware (en Exim> = 4,73) con la opción-bmalware:
+
+
+# exim -bmalware <filename>
+
+
+Otra fuente de información se ejecuta Exim con la depuración activada, especificando la opción-d. Si un mensaje se ha quedado atascado en el carrete de Exim, puede forzar un parto con la depuración activada por un comando de la forma
+
+
+# exim -d -M <exim-message-id>
+
+# 21: Consejos de bonificación
+Algunos consejos adicionales:
+
+Bash Shell Scripts / KSH
+Es posible comprobar la sintaxis script bash sin ejecutarla:
+
+
+$ bash -n ./myscript
+
+
+Salidas de muestra:
+
+./myscript<: line 16: syntax error near unexpected token `fi'
+./myscript<: line 16: `fi'
+O
+
+
+$ ksh -n /path/to/backup.ksh
+
+
+Vea cómo depurar un script de shell en Linux o UNIX para obtener más información.
+
+FreeBSD / OpenBSD / Apple OS X pf Firewall
+El comando pfctl utiliza para controlar el cortafuegos y dispositivos NAT pf bajo sistema operativo BSD incluyendo Apple OS X. La sintaxis es la siguiente para la prueba de errores:
+
+
+# pfctl -nf /etc/pf.conf
+
+Cuando,
+
+-n: no cargue las reglas de / ruta / a / pf.testing.conf, sólo tiene que analizar.
+-f /ruta/a/pf.testing.conf: Carga de las reglas del firewall contenidos en un archivo llamado /ruta/a/pf.testing.conf.
+Resumen de los mandatos:
+Daemon	Command
+OpenSSH	/usr/sbin/sshd -t && echo $?
+/usr/sbin/sshd -T
+Apache	/usr/sbin/apache2 -t
+apachectl configtest
+nginx	/usr/local/nginx/sbin/nginx -t
+/usr/local/nginx/sbin/nginx -t -c /usr/local/nginx/conf/nginx.conf
+lighttpd	/usr/local/sbin/lighttpd -t -f /usr/local/etc/lighttpd/cyberciti.biz/lighttpd.conf
+Bind (named server config)	named-checkconf /etc/named.conf
+Bind (zone syntx)	named-checkzone cyberciti.biz /var/named/zone.cyberciti.biz
+Squid proxy	/usr/sbin/squid -k check
+/usr/sbin/squid -k parse
+MySQL server	mysqld --verbose --help
+/usr/libexec/mysqld --verbose --help 1>/dev/null
+Postfix MTA	postfix check
+postfix -vvv
+Samba SMB/CIFS	testparm -v
+tcpd	tcpdchk
+tcpdchk -v
+dhcpd (DHCP / BOOTP) server	dhcpd -t -cf /path/to/dhcpd.testing.conf
+vsftpd server	vsftpd -olisten=NO /path/to/vsftpd.testing.conf
+nagios	nagios -v /path/to/testing/nagios.cfg
+Openntpd NTPD server	ntpd -d -f /usr/local/etc/ntpd.conf -n
+Xorg (X11 Server)	Xorg -config /path/to/xorg.conf.new -retro
+syslogd / rsyslogd	rsyslogd -c4 -f /etc/rsyslog.testing.conf -N 1
+CUPS Printing System	cupsd -f -c /path/to/cupsd.testing.conf -t
+slapd (OpenLDAP)	slapd -Tt
+varnishd	varnishd -C -f /path/to/wordpress.vlc
+exim MTA	exim -bV
+Bash/Ksh scripts	bash -n ./myscript
+ksh -n /path/to/script.ksh
+BSD pf firewall	pfctl -nf /etc/pf.conf
+proftpd	proftpd -t -c /path/to/proftpd.testing.conf
+Perl scripts	perl -c /path/to/script.pl
+perl -wc /path/to/script.pl
+Espero que estos consejos útiles. Tener un comando para comprobar el favorito de Unix / Linux / BSD servidor de archivos de configuración para los errores de sintaxis y / o advertencias? Vamos a oír hablar de ello en los comentarios.
+
+Fuente.
