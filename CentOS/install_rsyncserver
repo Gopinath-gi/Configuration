@@ -1,0 +1,54 @@
+[root@lan ~]# yum -y install rsync xinetd 
+
+[root@lan ~]# vi /etc/xinetd.d/rsync 
+
+# default: off
+# description: The rsync server is a good addition to an ftp server, as it \
+#      allows crc checksumming etc.
+service rsync
+{
+disable= no# change
+socket_type= stream
+wait= no
+user= root
+server= /usr/bin/rsync
+server_args= --daemon
+log_on_failure+= USERID
+}
+
+[root@lan ~]# /etc/rc.d/init.d/xinetd start 
+Starting xinetd:[ OK ]
+[root@lan ~]# chkconfig xinetd on 
+
+[root@lan ~]# mkdir /home/backup 
+[root@lan ~]# vi /etc/rsyncd.conf
+
+# any name you like
+[site]
+# destination directory
+path = /home/backup
+# Hosts you allow to copy (specify source Host)
+hosts allow = 10.0.0.251
+hosts deny = *
+list = true
+uid = root
+gid = root
+read only = false
+
+
+[root@www ~]# yum -y install rsync 
+
+[root@www ~]# vi /etc/rsync_exclude.lst 
+
+# specify files or directories you'd like to exclude to copy
+test
+test.txt
+
+[root@www ~]# rsync -avz --delete --exclude-from=/etc/rsync_exclude.lst /var/www/html/ 10.0.0.33::site 
+
+# Add in cron if you'd like to run reguraly
+[root@www ~]# crontab -e
+
+# run at 2:00 AM in a day
+00 02 * * * rsync -avz --delete --exclude-from=/etc/rsync_exclude.lst /var/www/html/ 10.0.0.33::site
+

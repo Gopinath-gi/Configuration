@@ -1,0 +1,70 @@
+Step One—Install vsftpd
+
+sudo yum install vsftpd
+sudo yum install ftp
+sudo vi /etc/vsftpd/vsftpd.conf
+
+anonymous_enable=NO
+local_enable=YES
+chroot_local_user=YES
+
+sudo service vsftpd restart
+
+chkconfig vsftpd on
+
+Disable SSH access for FTP users
+
+usermod -s /sbin/nologin test
+
+vsftpd - Limit FTP access only to /var/www
+------------------------------------------
+Method 1
+
+chroot_local_user=YES
+
+usermod --home /var/www/ username
+
+Method 2#
+
+chroot_local_user=YES
+local_root=/ftphome/$USER
+user_sub_token=$USER
+
+
+Automatically generate a home directory for each virtual user, based on a template. For example, if the home directory of the real user specified via guest_username is /ftphome/$USER, and user_sub_token is set to $USER, then when virtual user test logs in, he will end up (usually chroot()'ed) in the directory /ftphome/test. This option also takes affect if local_root contains user_sub_token.
+
+Create directory and setting up permission :
+
+mkdir -p /ftphome/{test,user1,user2}
+
+chmod 770 -R /ftphome
+chown -R ftp. /ftphome
+usermod -G ftp test
+Once restart vsftpd and test your setup.
+
+Sample success output:
+
+[root@mail tmp]# ftp localhost
+Connected to mail.linuxian.local.
+220 (vsFTPd 2.0.5)
+530 Please login with USER and PASS.
+530 Please login with USER and PASS.
+KERBEROS_V4 rejected as an authentication type
+Name (localhost:root): test
+331 Please specify the password.
+Password:
+230 Login successful.
+Remote system type is UNIX.
+Using binary mode to transfer files.
+ftp> mput vhosts
+mput vhosts? 
+227 Entering Passive Mode (127,0,0,1,146,41)
+150 Ok to send data.
+226 File receive OK.
+24 bytes sent in 3.3e-05 seconds (7.1e+02 Kbytes/s)
+ftp> ls -rlt
+227 Entering Passive Mode (127,0,0,1,97,90)
+150 Here comes the directory listing.
+-rw-r--r--    1 787      787            24 Oct 11 19:57 vhosts
+226 Directory send OK.
+ftp> 221 Goodbye.
