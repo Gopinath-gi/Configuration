@@ -113,7 +113,7 @@ ns2     A       172.31.0.202
 mail    A       172.31.0.202
 www     A       172.31.0.10
 ftp     A       172.31.0.14
-CNAME mail
+correo	CNAME mail
 
 # cat $J/var/named/data/INTERNA/40.168.192.in-addr.arpa.db
 $ORIGIN .
