@@ -108,6 +108,7 @@ $TTL 2h
                                 1h ); Negative cache TTL 
         NS ns1 
         NS ns2 
+	MX 10 mail
 ns1     A       172.31.0.201
 ns2     A       172.31.0.202
 mail    A       172.31.0.202
