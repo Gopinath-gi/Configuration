@@ -1,0 +1,27 @@
+# no default banner path
+Banner /etc/issue.net
+
+# override default of no subsystems
+#Subsystem      sftp    /usr/libexec/openssh/sftp-server
+Subsystem sftp internal-sftp
+
+# Example of overriding settings on a per-user basis
+#Match User anoncvs
+#       X11Forwarding no
+#       AllowTcpForwarding no
+#       ForceCommand cvs server
+
+Match User uch_web
+        ChrootDirectory /var/www/html/uch_web
+        ForceCommand internal-sftp
+        AllowTcpForwarding no
+
+Match User drupal
+        ChrootDirectory /var/www/html/drupal.uch.edu.pe/
+        ForceCommand internal-sftp
+        AllowTcpForwarding no
+
+Match User noticias
+        ChrootDirectory /var/www/html/uch_web/noticiauch
+        ForceCommand internal-sftp
+        AllowTcpForwarding no

@@ -1,0 +1,266 @@
+Configuración de OpenSSH
+
+CentOS 6.5 
+----------
+
+yum -y install openssh openssh-server openssh-clients
+
+En CentOS y Red Hat™ Enterprise Linux.
+
+Ejecute lo siguiente para desactivar el servicio de todos los niveles de ejecución ejecute:
+
+chkconfig sshd off
+Ejecute lo siguiente para iniciar por primera vez el servicio:
+
+service sshd start
+Ejecute lo siguiente para reiniciar el servicio y aplicar cambios en la configuración::
+
+Es necesario abrir el puerto 22 por TCP (SSH) o bien el puerto que se haya seleccionado para el servicio.
+
+En CentOS y Red Hat™ Enterprise Linux.
+
+Utilizando system-config-firewall.
+
+Ejecute lo siguiente:
+
+system-config-firewall-tui
+Habilite la casilla de SSH y aplique los cambios.
+
+Habilitando SSH en system-config-firewall-tui.
+Habilitando SSH en system-config-firewall-tui.
+
+O bien utilice la herramienta gráfica desde el escritorio.
+
+Habilitando SSH en system-config-firewall.
+Habilitando SSH en system-config-firewall.
+
+Servicio iptables.
+
+Ejecute lo siguiente:
+
+iptables -A INPUT -m state --state NEW -m tcp -p tcp --dport 22 -j ACCEPT
+Guarde los cambios ejecutando lo siguiente:
+
+service iptables save
+O bien añada lo siguiente al archivo /etc/sysconfig/iptables:
+
+-A INPUT -m state --state NEW -m tcp -p tcp --dport 22 -j ACCEPT
+Y reinicie el servicio iptables:
+
+service iptables restart
+Shorewall.
+
+Edite el archivo /etc/shorewall/rules:
+
+vi /etc/shorewall/rules
+Las regla correspondería a algo similar a lo siguiente:
+
+#ACTION	SOURCE	DEST	PROTO 	DEST		SOURCE
+#				PORT		PORT(S)1
+ACCEPT	all	fw	tcp	22
+
+SELinux y el servicio sshd.
+
+Política ssh_chroot_rw_homedirs.
+Habilita los atributos lectura y escritura de archivos en los directorios de inicio de los usuarios con chroot. El valor predeterminado es deshabilitado. Para habilitar sólo ejecute:
+setsebool -P ssh_chroot_rw_homedirs 1
+
+Política fenced_can_ssh.
+Permite a usuarios con chroot poder ingresar también a través de SSH. El valor predeterminado es deshabilitado. Por lo general se evita utilizar esta política. Para habilitar ejecute:
+setsebool -P fenced_can_ssh 1
+
+Política ssh_chroot_manage_apache_content.
+Permite a usuarios con chroot poder administrar también contenidos publicados a través de Apache. El valor predeterminado es deshabilitado. Para habilitar ejecute:
+setsebool -P ssh_chroot_manage_apache_content 1
+
+Política ssh_sysadm_login.
+Habilita el acceso a usuarios con rol de administrador de sistema (contextos sysadm_r:sysadm_t. El valor predeterminado es deshabilitado. Para habilitar ejecute:
+setsebool -P ssh_sysadm_login 1
+
+Política allow_ssh_keysign.
+Habilita el uso de firmas digitales. El valor predeterminado es deshabilitado. Para habilitar ejecute:
+setsebool -P allow_ssh_keysign 1
+
+Contexto ssh_home_t.
+
+El contexto de SELinux para de los directorios ~/.ssh —y sus contenidos— debe ser tipo ssh_home_t. Reasigne los contextos ejecutando lo siguiente:
+
+restorecon -Rv /root/.ssh /home/*/.ssh
+O bien ejecutando:
+
+chcon -R -t ssh_home_t /root/.ssh /home/*/.ssh
+Archivos de configuración.
+
+/etc/ssh/sshd_config
+Archivo principal de configuración del servidor SSH.
+/etc/ssh/ssh_config
+Archivo principal de configuración de los clientes SSH utilizados desde el anfitrión local.
+~/.ssh/config
+Archivo personal para cada usuario, que almacena la configuración utilizada por los clientes SSH utilizados desde el anfitrión local. Permite al usuario local utilizar una configuración distinta a la definida en el archivo /etc/ssh/ssh_config.
+~/.ssh/known_hosts
+Archivo personal para cada usuario, el cual almacena las firmas digitales de los servidores SSH a los que se conectan los clientes. Cuando éstas firmas cambian, se pueden actualizar ejecutando ssh-keygen con la opción -R y el nombre del anfitrión como argumento, el cual elimina la entrada correspondiente del archivo ~/.ssh/known_hosts, permitiendo añadir de nuevo el anfitrión con una nueva firma digital. Ejemplo: ssh-keygen -R nombre.o.ip.servidor.
+~/.ssh/authorized_keys
+Archivo personal para cada usuario, el cual almacena los certificados de los clientes SSH, para permitir autenticación hacia servidores SSH sin requerir contraseña. Consulte el documento titulado «OpenSSH con autenticación a través de firma digital.»
+Cuando se utilizan cuentas con acceso al intérprete de mandatos, las opciones suministradas a ssh tienen precedencia sobre las opciones establecidas en el archivo ~/.ssh/config, que a su vez tiene precedencia sobre las opciones definidas en el archivo /etc/ssh/ssh_config.
+
+Procedimientos.
+
+Edite el archivo /etc/ssh/sshd_config.
+
+vi /etc/ssh/sshd_config
+A continuación se analizarán las opciones básicas que se recomienda modificar.
+
+Opción Port.
+Una forma de elevar considerablemente la seguridad al servicio consiste en cambiar el número de puerto predeterminado por otro que sólo conozca el administrador del sistema. A este tipo de técnicas se les conoce como Seguridad por Oscuridad. La mayoría de los delincuentes informáticos utiliza guiones que buscan servidores que respondan a peticiones a través del puerto 22. Cambiar de puerto disminuye considerablemente la posibilidad de una intrusión.
+
+Port 22
+SSH trabaja a través del puerto 22 por TCP. Puede elegirse cualquier otro puerto entre el 1025 y 65535. En el siguiente ejemplo se establecerá el puerto 52341:
+
+Port 52341
+
+Opción ListenAddress.
+De modo predeterminado el servicio de SSH escuchará peticiones a través de todas las direcciones presentes en todas las interfaces de red del sistema. En el siguiente ejemplo el servidor a configurar tiene la dirección IP 192.168.1.254, la cual sólo podría ser accedida desde la red local:
+ListenAddress 192.168.1.254
+
+Opción PermitRootLogin.
+Establece si se va a permitir el ingreso directo del usuario root al servidor SSH. Si se va a permitir el ingreso hacia el servidor desde redes públicas, resultará prudente utilizar esta opción con el valor no, de modo que sea necesario ingresar primero con una cuenta de usuario activa, con un intérprete de mandatos que permita el acceso.
+PermitRootLogin no
+
+Opción X11Forwarding.
+Establece si se permitirá la ejecución remota de aplicaciones gráficas que utilicen el servidor X11. Resultará conveniente para algunas tareas administrativas que sólo puedan llevarse a cabo con herramientas gráficas o bien si se requiere utilizar una aplicación gráfica en particular. Para este fin, esta opción puede establecerse con el valor yes.
+X11Forwarding yes
+
+Opción AllowUsers.
+Permite restringir el acceso por usuario y/o por anfitrión. El siguiente ejemplo restringe el acceso hacia el servidor SSH para que sólo puedan hacerlo los usuarios fulano y mengano, desde cualquier anfitrión.
+
+AllowUsers fulano mengano
+El siguiente ejemplo restringe el acceso hacia el servidor SSH para que sólo puedan hacerlo los usuarios fulano y mengano, pero sólo desde los anfitriones 10.1.1.1 y 10.2.2.1.
+
+AllowUsers fulano@10.1.1.1 mengano@10.1.1.1 fulano@10.2.2.1 mengano@10.2.2.1
+
+Opción UseDNS.
+Cuando un cliente realiza una conexión hacia un servidor SSH, éste último intentará resolver la dirección IP del cliente. Si el servidor DNS predeterminado del sistema carece de una zona de resolución inversa que resuelva un nombre para la dirección IP del cliente, la conexión se demorará algunos segundos más de lo normal. Algunos administradores prefieren desactivar esta función con el fin de agilizar las conexiones SSH en redes donde se carece de servidores DNS que tengan zonas de reenvío para resolver los nombres o zonas de resolución inversa para resolver las direcciones IP de los segmentos de red local.
+
+UseDNS no
+Del lado del cliente se realiza un proceso de validación, que tiene como objetivo verificar si se están falsificando registros en un servidor DNS, en el caso de que éste último se haya visto comprometido en su seguridad. La opción que controla esta función es CheckHostIP, tiene establecido yes como valor predeterminado y se define en el archivo /etc/ssh/ssh_config (archivo de configuración para los clientes SSH del anfitrión local).
+
+Se recomienda dejar intacta esta opción con el valor predeterminado, salvo que los servidores SSH involucrados carezcan de resolución en algún servidor DNS. Establecer el valor no, tiene como riesgo el ser susceptible de conectarse inadvertidamente a un servidor distinto al que realmente se quería utilizar, cuya resolución de nombre de anfitrión haya sido falsificada y que pudiera estar siendo utilizado con malas intenciones para engañar y poder capturar nombres de usuario y contraseñas y posteriormente utilizar éstos para acceder al verdadero servidor.
+
+Jaulas para los usuarios que acceden a través de SFTP.
+
+La función de chroot (jaula de confinamiento de los usuarios) viene incluida desde la versión 4.9p1 de OpenSSH.
+
+Edite el archivo /etc/ssh/sshd_config:
+
+vi /etc/ssh/sshd_config
+Localice la siguiente línea resaltada. La encontrará casi al final del archivo:
+
+# override default of no subsystems
+Subsystem	sftp	/usr/libexec/openssh/sftp-server
+Deshabilite la línea con una almohadilla y añada el siguiente contenido resaltado:
+
+# override default of no subsystems
+#Subsystem	sftp	/usr/libexec/openssh/sftp-server
+Subsystem     sftp   internal-sftp
+Match Group sftpusers
+    ChrootDirectory %h
+    ForceCommand internal-sftp
+    AllowTcpForwarding no
+Guarde el archivo, salga del editor de texto y regrese al intérprete de mandatos.
+
+Si utiliza CentOS o Red Hat™ Enterprise Linux, reinicie el servicio ejecutando lo siguiente:
+
+service sshd restart
+Si utiliza openSUSE™ o SUSE™ Linux Enterprise, reinicie el servicio ejecutando lo siguiente:
+
+rcsshd restart
+Ejecute groupadd con sftpusers como argumento para crear un grupo con este nombre.
+
+groupadd sftpusers
+Añada usuarios a los cuales se quiera enjaular con chroot al grupo sftpusers ejecutando usermod con la opción -G (mayúscula) y sftpusers y el nombre del usuario como argumentos. Ejemplo:
+
+usermod -G sftpusers perengano
+Cambie los permisos del directorio de inicio de los usuarios involucrados para que pertenezcan al grupo y usuario root y además tengan permiso de acceso 755 —es decir drwxr-xr-x.
+
+chown root:root /home/perengano
+chmod 755 /home/perengano
+Genere un directorio donde el usuario y su grupo predeterminado tengan privilegios de escritura:
+
+mkdir -m 0755 /home/perengano/public_html
+chown perengano:users /home/perengano/public_html
+Finalmente, cambie el intérprete de mandatos de los usuarios involucrados a /sbin/nologin.
+
+usermod -s /sbin/nologin perengano
+A partir de este momento los usuarios involucrados podrán ingresar al sistema a través de SFTP, pero sólo podrán tener acceso a su directorio de inicio.
+
+[fulano@centos6 ~]$ sftp perengano@192.168.80.8
+perengano@192.168.80.8's password: 
+Connected to 192.168.80.8.
+sftp> pwd
+Remote working directory: /
+sftp> ls -a
+.         ..        .bash_logout   .bash_profile   .bashrc   public_html
+sftp>
+Accediendo con Nautilus a cuenta SFTP con chroot.
+Accediendo con Nautilus a cuenta SFTP con chroot.
+
+Transferencia de archivos a través de SCP.
+
+Para realizar transferencias de archivos a través de SCP, es necesario conocer las rutas de los directorios objetivo del anfitrión remoto. A continuación se describen algunas de las opciones más importantes de scp.
+
+-p (minúscula)
+Preserva el tiempo de modificación, tiempos de acceso y los modos del archivo original.
+-P (mayúscula)
+Especifica el puerto para realizar la conexión.
+-r
+Copia en modo descendente de los directorios especificados.
+En el siguiente ejemplo se transferirá el archivo algo.txt —preservando tiempos y modos— hacia el directorio de inicio del usuario fulano en el servidor 192.169.0.99.
+
+scp -p algo.txt fulano@192.168.70.99:~/
+En el siguiente ejemplo se transferirá la carpeta Mail, junto con todo su contenido, preservando tiempos y modos, hacia el directorio de inicio del usuario fulano en el servidor 192.169.0.99.
+
+scp -rp Mail fulano@192.168.70.99:~/
+En el siguiente ejemplo se transferirá la carpeta Mail, junto con todo su contenido, desde el directorio de inicio del usuario fulano en el servidor 192.169.0.99, cuyo servicio de SSH escucha peticiones a través del puerto 52341, preservando tiempos y modos, hacia el directorio del usuario con el que se está trabajando en el anfitrión local.
+
+scp -P 52341 -rp fulano@192.168.70.99:~/Mail ./
+
+
+Centos 5.5
+----------
+
+Actualizar el paquete que viene por defecto a la versión más reciente: 
+
+# wget -c "http://ubuntu.ich.edu.pe/pub/CentOS/jail_ssh/openssh-5.5p1-1.i386.rpm"
+# wget -c "http://ubuntu.ich.edu.pe/pub/CentOS/jail_ssh/openssh-clients-5.5p1-1.i386.rpm"
+# wget -c "http://ubuntu.ich.edu.pe/pub/CentOS/jail_ssh/openssh-debuginfo-5.5p1-1.i386.rpm"
+# wget -c "http://ubuntu.ich.edu.pe/pub/CentOS/jail_ssh/openssh-server-5.5p1-1.i386.rpm"
+
+# rpm -Uvh *.rpm 
+
+# vi /etc/ssh/sshd-config
+
+# override default of no subsystems
+#Subsystem      sftp    /usr/libexec/openssh/sftp-server
+Subsystem  sftp   internal-sftp
+
+Match User eflores
+        ChrootDirectory /home/eflores/
+        ForceCommand internal-sftp
+        AllowTcpForwarding no
+
+Chroot ssh Centos
+
+# mkdir /httpdjail/var/www/html/denied.ich.edu.pe/
+# useradd -d /httpdjail/var/www/html/denied.ich.edu.pe/ -s /sbin/nologin -G users -G users eflores 
+# passwd eflores
+# mkdir /httpdjail/var/www/html/denied.ich.edu.pe/home/
+# chown eflores:users /httpdjail/var/www/html/denied.ich.edu.pe/home/
+# service sshd restart
+
+
+
+
+
+
+
+

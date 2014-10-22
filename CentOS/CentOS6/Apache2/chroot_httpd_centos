@@ -1,0 +1,202 @@
+chroot httpd centos
+
+# J=/httpdjail
+# mkdir $J
+# yum install mysql mysql-server httpd php-mysql php-pear php-xml php-mysql php-cli php-imap php-gd php-pdo php-devel php-mbstring php-common php-ldap php httpd-devel httpd
+# mkdir -p $J/var/run
+# chown -R root.root $J/var/run
+# mkdir -p $J/home/httpd
+# mkdir -p $J/var/www/html
+# mkdir -p $J/tmp
+# chmod 1777 $J/tmp
+# mkdir -p $J/var/lib/php/session
+# chown root.apache $J/var/lib/php/session
+
+Install mod_chroot
+# cd /opt/
+# wget http://core.segfault.pl/~hobbit/mod_chroot/dist/mod_chroot-0.5.tar.gz
+# tar -zxvf mod_chroot-0.5.tar.gz
+# cd mod_chroot-0.5
+# apxs -cia mod_chroot.c
+# C=/etc/httpd/conf/httpd.conf
+# vi $C
+
+Buscar la línea: 
+PidFile run/httpd.pid
+
+Reemplazarla con: 
+PidFile /var/run/httpd.pid
+
+Next add ChrootDir directive, enter:
+ChrootDir /httpdjail
+
+Busque la Línea
+ServerRoot "/etc/httpd"
+
+Añada las siguientes líneas
+LockFile /var/run/httpd.lock
+CoreDumpDirectory /var/run
+ScoreBoardFile /var/run/httpd.scoreboard
+
+Make sure mod_chroot.so line exists. For example, 64 bit Linux should have line as follows:
+
+LoadModule chroot_module      /usr/lib64/httpd/modules/mod_chroot.so
+32 bit Linux config line:
+
+LoadModule chroot_module      /usr/lib/httpd/modules/mod_chroot.so
+Save and close the file.
+
+Disable SELinux for Apache
+
+You need to disable SELinux for apache, enter:
+# setsebool httpd_disable_trans 1
+
+See article "disabling SELinux for only Apache / httpd in Linux" for further details.
+
+Patch up /etc/init.d/httpd
+Open /etc/init.d/httpd file, enter:
+# vi /etc/init.d/httpd
+
+Find out line that read as follows:
+
+# Start httpd in the C locale by default.
+HTTPD_LANG=${HTTPD_LANG-"C"}
+Add following line (set ROOT to $J):
+
+ROOT=/httpdjail
+Find stop() that read as follows:
+
+stop() {
+        echo -n $"Stopping $prog: "
+        killproc -d 10 $httpd
+        RETVAL=$?
+        echo
+        [ $RETVAL = 0 ] && rm -f ${lockfile} ${pidfile}
+}
+Replace it as follows (you need to link /var/run/httpd.pid to $J/var/run/httpd.pid; so that stop operation works):
+
+stop() {
+        /bin/ln -s $ROOT/var/run/httpd.pid /var/run/httpd.pid
+        echo -n $"Stopping $prog: "
+        killproc -d 10 $httpd
+        RETVAL=$?
+        echo
+        [ $RETVAL = 0 ] && rm -f ${lockfile} ${pidfile}
+}
+Save and close the file. Set immutable permission on /etc/init.d/httpd so that file cannot be modified, updated by yum, deleted or renamed, no link can be created to this file and no data can be written to the file. Only the superuser or a process possessing the CAP_LINUX_IMMUTABLE capability can set or clear this attribute:
+# chattr +i /etc/init.d/httpd
+
+How do I start chrooted httpd?
+
+Type the following command:
+# /etc/init.d/httpd start
+
+Virtualhost in Centos
+---------------------
+
+[root@localhost ~]# vim /etc/httpd/conf/httpd.conf
+# Add Line 
+Include /etc/httpd/conf/vhosts.d/*.conf
+[root@localhost ~]# mkdir /etc/httpd/conf/vhosts.d
+[root@localhost ~]# cd /etc/httpd/conf/vhosts.d/
+[root@localhost ~]# touch denied.ich.edu.pe.conf 
+
+# Pueden observar que no se considera a /httpdjail porque es la jaula sobre la que trabaja /var/www/html
+<VirtualHost *:80>
+        ServerName www.ich.edu.pe
+        ServerAlias denied.ich.edu.pe
+        ServerAdmin datacenter@ich.edu.pe
+        DocumentRoot /var/www/html/denied.ich.edu.pe/home
+        DirectoryIndex index.html index.php
+        ErrorDocument 404 /httpdjail/var/www/html/denied.ich.edu.pe/home/error-404.html
+        ErrorDocument 403 /httpdjail/var/www/html/denied.ich.edu.pe/home/error-403.html
+        LogLevel warn
+        ErrorLog /var/log/httpd/denied.ich.edu.pe-error.log
+        CustomLog /var/log/httpd/denied.ich.edu.pe-access.log common
+<Directory /var/www/html/denied.ich.edu.pe/home>
+        Options +FollowSymLinks +Multiviews
+        Allow from all
+</Directory>
+</VirtualHost>
+
+[root@localhost ~]# service httpd restart
+
+Virtualhost in CenTOS for two or more domains
+---------------------------------------------
+Add lines in httpd.conf 
+
+#vim /etc/httpd/conf/httpd.conf
+<Directory /vhosts>
+AllowOverride AuthConfig Options
+</Directory>
+
+NameVirtualHost *:80
+<VirtualHost _default_:80>
+        DocumentRoot /vhosts/default
+        CustomLog /var/log/httpd/default-access.log common
+        <Directory /vhosts/default>
+                Options None
+                Allow from all
+        </Directory>
+</VirtualHost>
+
+Include /etc/httpd/conf/vhosts.d/*.conf
+
+root@localhost# cd /etc/httpd/conf/vhosts.d/
+
+root@localhost# touch vhost1.conf
+root@localhost# vim vhost1.conf
+<VirtualHost *:80>
+        ServerName www.cybermatrix.com.pe
+        ServerAlias cybermatrix.com.pe cybermatrix.com www.cybermatrix.com
+        ServerAdmin webmaster@cybermatrix.com.pe
+        DocumentRoot /vhosts/cybermatrix
+        DirectoryIndex index.php index.html
+        ErrorDocument 404 /var/www/html/errors/error-404.html
+        ErrorDocument 403 /var/www/html/errors/error-403.html
+        LogLevel warn
+        ErrorLog /var/log/httpd/cybermatrix-error.log
+        CustomLog /var/log/httpd/cybermatrix-access.log common
+
+        <Directory /vhosts/cybermatrix>
+        Options +FollowSymLinks +Multiviews
+        Allow from all
+        </Directory>
+</VirtualHost>
+
+root@localhost# touch vhost2.conf
+root@localhost# vim vhost2.conf
+<VirtualHost *:80>
+        ServerName www.newtechnologies.net
+        ServerAdmin webmaster@newtechnologies.net
+        DocumentRoot /vhosts/newtechnologies/
+        DirectoryIndex index.php index.html
+        AliasMatch ^/(webmail|correo|correoweb) /var/www/html/htdocs/horde
+        LogLevel error
+        ErrorLog /var/log/httpd/newtechnologies-error.log
+        CustomLog /var/log/httpd/newtechnologies-access.log common
+        <Directory /vhosts/newtechnologies/>
+        Options +FollowSymLinks +Includes
+        Allow from all
+        </Directory>
+</VirtualHost>
+
+root@localhost# vim /etc/hosts 
+192.168.233.138 www.newtechnologies.net newtechnologies
+192.168.233.138 www.cybermatrix.com.pe cybermatrix.com.pe
+
+Si deseas puedes crear un archivo default para que toda dirección que no este en la virtual se redireccione por defecto ahi:
+
+<VirtualHost _default_:80>
+        DocumentRoot /vhosts/default
+        CustomLog /var/log/httpd/default-access.log common
+        <Directory /vhosts/default>
+        Options None
+        Allow from all
+        </Directory>
+</VirtualHost>
+
+
+
+
+

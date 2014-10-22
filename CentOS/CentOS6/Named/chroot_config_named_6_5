@@ -1,0 +1,137 @@
+install bind chroot in centos 6/5
+
+#yum -y install bind-chroot 
+#J=/var/named/chroot
+#touch $J/etc/named/named.conf 
+#mkdir $J/var/log/named/
+#chown -R named.named $J/var/log/named/
+#cp -rfv /usr/share/doc/bind-9.8.2/sample/var/named/named.ca $J/etc/named/db.root
+#vim $J/etc/named/named.conf 
+#mkdir $J/var/named/{INTERNA,EXTERNA}
+#chown -R named.named $J/var/named/INTERNA
+// Definición de ACLs
+acl local { localhost; };
+acl lan { 192.168.40.0/24; };
+
+// Opciones de configuración global
+options {
+        directory "/var/named";
+        forwarders {
+                8.8.8.8;
+                8.8.4.4;
+        };
+        forward first;
+        listen-on { 127.0.0.1; 192.168.40.1; };
+        allow-query { local; lan; };
+};
+
+// Configuración de logs
+logging {
+        channel seguridad {
+                file "/var/log/named/seguridad.log" versions 3 size 2m;
+                severity info;
+        };
+
+        channel consultas {
+                file "/var/log/named/consultas.log" versions 3 size 5m;
+                severity debug;
+        };
+
+        channel general {
+                syslog local4;
+                severity info;
+                print-category yes;
+        };
+
+        category queries { consultas; default_syslog; };
+        category security { seguridad; default_syslog; };
+        category xfer-in { general; };
+        category xfer-out { general; };
+        category notify { general; };
+        category lame-servers { general; };
+        category client { general; };
+        category resolver { general; };
+};
+
+// Una vista interna con declaración de zonas y permisos
+view "INTERNA" {
+        match-clients { lan; localhost; };
+        recursion yes;
+        notify yes;
+
+        zone "." {
+                type hint;
+                file "/etc/named/db.root";
+        };
+
+        zone "ich.edu.pe" IN {
+                type master;
+                file "/var/named/INTERNA/ich.edu.pe.INTERNA.db";
+                allow-transfer { 192.168.40.2; };
+        };
+
+        zone "40.168.192.in-addr.arpa" IN {
+                type slave;
+                file "/var/named/INTERNA/40.168.192.in-addr.arpa.db";
+                masters { 192.168.40.2; };
+        };
+};
+
+view "EXTERNA" {
+/* Coincide con cualquier otro cliente que no coincidió con la vista anterior.
+En esta vista podrían encajar los clientes de una red WAN o Internet */
+        match-clients { any; };
+        recursion no;
+        notify no;
+
+        zone "." {
+                type hint;
+                file "/etc/named/db.root";
+        };
+
+        zone "ich.edu.pe" IN {
+                type master;
+                file "/var/named/EXTERNA/ich.edu.pe.EXTERNA.db";
+                allow-transfer { none; };
+        };
+};
+
+# cat $J/var/named/INTERNA/ich.edu.pe.INTERNA.db
+
+$ORIGIN ich.edu.pe.
+$TTL 2h
+@ SOA ns1.ich.edu.pe. admin.ich.edu.pe. (
+                                2009121802; Serial
+                                30m; Refresh
+                                3m; Retry           
+                                4w; Expiry
+                                1h ); Negative cache TTL 
+        NS ns1 
+        NS ns2 
+	MX 10 mail
+ns1     A       172.31.0.201
+ns2     A       172.31.0.202
+mail    A       172.31.0.202
+www     A       172.31.0.10
+ftp     A       172.31.0.14
+correo	CNAME mail
+
+# cat $J/var/named/data/INTERNA/40.168.192.in-addr.arpa.db
+$ORIGIN .
+$TTL 10800      ; 3 hours
+40.168.192.in-addr.arpa   IN SOA  ns1.ich.edu.pe. admin.ich.edu.pe. (
+                                2014071200 ; serial
+                                10800      ; refresh (3 hours)
+                                180        ; retry (3 minutes)
+                                2419200    ; expire (4 weeks)
+                                7200       ; minimum (2 hours)
+                                )
+                        NS      ns1.ich.edu.pe.
+                        NS      ns2.ich.edu.pe.
+$ORIGIN 40.168.192.in-addr.arpa.
+121                     PTR     instaladores.ich.edu.pe.
+125                     PTR     pxe.ich.edu.pe.
+157                     PTR     mail.ich.edu.pe.
+
+
+
