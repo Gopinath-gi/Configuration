@@ -1,0 +1,5 @@
+apt-get install cacti --force-yes -y 
+apt-get install snmp-mibs-downloader
+vim /etc/default/snmp 
+export MIBS=UCD-SNMP-MIB
+/etc/init.d/snmpd restart
