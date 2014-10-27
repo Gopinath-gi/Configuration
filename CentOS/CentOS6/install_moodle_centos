@@ -76,3 +76,4 @@ Restart Apache Server to reload newly changes made.
 
 # service apache restart
 
+# setsebool -P httpd_can_network_connect_db on
