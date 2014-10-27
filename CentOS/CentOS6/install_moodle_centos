@@ -1,172 +1,78 @@
-INSTALANDO MOODLE 2.6 EN CENTOS 6.5 (PASO A PASO)
-A continuación les dejo un manual paso a paso de como realizar la instalación
-de Moodle 2.6 en Centos 6.5; Yo instalé la versión mínima de Centos por lo que
-es necesario instalar cada una de las dependencias, si su instalación de Centos es
-más completa seguramente ya contarán con muchos de los paquetes que aqui
-instalo manualmente.
+How to Setup Moodle 2.6 on CentOS/RHEL 6/5
 
-Espero les sea de ayuda.
+Moodle is an Open Source Course Management System, Its also known as a Learning Management System (LMS) or a Virtual Learning Environment (VLE). This tutorial will help you to install Moodle on CentOS/RHEL Systems
+Step 1: Install Recommended Packages
 
-1. INSTALAR MYSQL
-——————————————————————————————————-
-#yum install mysql mysql-server
-——————————————————————————————————-
+# yum install git php-common php-mysql php-gd php-intl php-curl php
+# yum install php-ldap php-apc php-mbstring php-dom php-soap php-xmlrpc
 
-arrancar el servicio
-——————————————————————————————————-
-#service mysqld start
-——————————————————————————————————-
+Step 2: Download Moodle Source
 
-entrar a mysql y verificar versión
-——————————————————————————————————-
-#mysql
-——————————————————————————————————-
+Moodle complete code is available under git repository. So we can directory make a clone of repository to our local system using following commands.
 
-establecer contraseña root
-——————————————————————————————————-
-#mysqladmin –u root password rootpass
-——————————————————————————————————-
+# mkdir /var/moodle
+# cd /var/moodle
+# git clone git://git.moodle.org/moodle.git www
 
-2. INSTALAR APACHE
-——————————————————————————————————-
-#yum install httpd
-——————————————————————————————————-
+After finishing Moodle git clone, checkout the latest branch of Moodle availabe in git. At the time of writing this article current Moodle version is 2.6.2 so we specified in below command.
 
-antes de probar verificar que el firewall este detenido
-——————————————————————————————————-
-#service iptables status
-——————————————————————————————————-
+# cd www
+# git checkout origin/MOODLE_26_STABLE
 
-en caso de estar activo denterlo
-——————————————————————————————————-
-#service iptables stop
-——————————————————————————————————-
+Click here to find latest available version of Moodle.
 
-3. INSTALAR PHP
-——————————————————————————————————-
-#yum install php php-common php-mysql php-gd php-intl php-curl php-xmlrpc php-ldap php-apc php-mbstring php-dom php-soap
-——————————————————————————————————-
+Create Moodle Data directory using following command.
 
-verificar version instalada
-——————————————————————————————————-
-#php -v
-——————————————————————————————————-
+# mkdir /var/moodle/data
 
-Definir los servicios para arrancar al inicio, deshabilitar iptables y reiniciar el equipo para validar
-que todo arranque correctamente
-——————————————————————————————————-
-#setup
-——————————————————————————————————-
+Step 3: Create Moodle Database
 
-en caso de no estar instalada instalar setuptool
-——————————————————————————————————-
-#yum install setuptool system-config-securitylevel-tui authconfig system-config-network-tui ntsysv
-——————————————————————————————————-
+Moodle supports MySQL 5.1.33, Postgres 8.3, MSSQL 2005, Oracle 10.2 or its heigher versions. For this tutorial we are using MySQL.
 
-4. DESCARGAR FUENTES:
+Use below commands to create moodle database and user to access database.
 
-instalar wget si no se tiene
-——————————————————————————————————-
-#yum install wget
-——————————————————————————————————-
+# mysql -u root -p
+MariaDB [(none)]> CREATE DATABASE moodle;
+MariaDB [(none)]> GRANT ALL ON moodle.* TO 'moodle'@'localhost' IDENTIFIED BY 'secretpassword';
+MariaDB [(none)]> FLUSH PRIVILEGES;
+MariaDB [(none)]> quit
 
-descargar fuentes:
-——————————————————————————————————-
-#cd /usr/src/
-#wget http://download.moodle.org/download.php/direct/stable26/moodle-latest-26.tgz
-——————————————————————————————————-
+Step 4: Setup Moodle Configuration
 
-descomprimir:
-——————————————————————————————————-
-#tar -zxvf moodle-latest-26.tgz
-——————————————————————————————————-
+Create Moodle configuration file by creating copy of config-dist.php with name config.php in www dirctory.
 
-y verificamos con ls
+# cd /var/moodle/www
+# cp config-dist.php config.php
 
-##############INSTALAR MOODLE#########################
+Now edit config.php and make following changes as per you setup details.
 
-5. CREAR BASE DE DATOS
-——————————————————————————————————-
-mysql -u root -p
-——————————————————————————————————-
+$CFG->dbtype    = 'mysqli';
+$CFG->dblibrary = 'native';
+$CFG->dbhost    = 'localhost';
+$CFG->dbname    = 'moodle';
+$CFG->dbuser    = 'moodle';
+$CFG->dbpass    = 'secretpassword';
+$CFG->prefix    = 'mdl_';
+$CFG->wwwroot   = 'http://moodle.tecadmin.net';
+$CFG->dataroot  = '/var/moodle/data';
 
-crear la base de datos:
-——————————————————————————————————-
->CREATE DATABASE moodledb;
->GRANT ALL PRIVILEGES ON moodledb.* TO ‘moodleusr’@’localhost’ IDENTIFIED BY ‘moodlepass';
->FLUSH PRIVILEGES;
->EXIT
-——————————————————————————————————-
+Step 5: Configure Web Server
 
-6. COPIA Y CREACION DE DIRECTORIOS
+Add a virtual host in Apache configuration file like below.
 
-regresamos a nuestro directorio origen y movemos la carpeta moodle a /var/www/html/
-——————————————————————————————————-
-#mv /usr/src/moodle /var/www/html/.
-——————————————————————————————————-
+<VirtualHost *:80>
+    ServerAdmin webmaster@tecadmin.net
+    DocumentRoot /var/moodle/www
+    ServerName moodle.tecadmin.net
+    CustomLog logs/moodle.tecadmin.net_log combined
+</VirtualHost>
 
-le asignamos el grupo y usuario de apache
-——————————————————————————————————-
-#chown -R apache:apache /var/www/html/moodle/
-——————————————————————————————————-
+Updating Moodle web and data directory permissions so that web server can write in it.
 
-creamos nuestra carpeta data
-——————————————————————————————————-
-#mkdir /var/moodle
-#mkdir /var/moodle/data
-#chown -R apache:apache /var/moodle
-#chmod -R 755 /var/moodle
-——————————————————————————————————-
+# chown -R apache:apache /var/moodle
+# chmod -R 755 /var/moodle
 
-vamos a nuestra carpeta
-——————————————————————————————————-
-#cd /var/www/html/moodle/
-——————————————————————————————————-
+Restart Apache Server to reload newly changes made.
 
-copiamos el archivo config-dist.php a config.php
-——————————————————————————————————-
-#cp config-dist.php config.php
-——————————————————————————————————-
+# service apache restart
 
-lo editamos
-——————————————————————————————————-
-#vi config.php
-——————————————————————————————————-
-
-y definimos nuestros valores de mysql
-——————————————————————————————————-
-$CFG->dbtype    = ‘mysqli';      // ‘pgsql’, ‘mariadb’, ‘mysqli’, ‘mssql’, ‘sqlsrv’ or ‘oci’
-$CFG->dblibrary = ‘native';     // ‘native’ only at the moment
-$CFG->dbhost    = ‘localhost';  // eg ‘localhost’ or ‘db.isp.com’ or IP
-$CFG->dbname    = ‘moodledb';     // database name, eg moodle
-$CFG->dbuser    = ‘moodleusr';   // your database username
-$CFG->dbpass    = ‘moodleusr';   // your database password
-$CFG->prefix    = ‘mdl_';       // prefix to use for all table names
-
-$CFG->wwwroot   = ‘http://nuestra-ip/moodle ‘;
-
-$CFG->dataroot  = ‘/var/moodle/data';
-——————————————————————————————————-
-
-si durante la instalación de nos muestra lo siguiente:
-——————————————————————————————————-
-PHP opcode caching improves performance and lowers memory requirements, OPcache extension is recommended and fully supported.
-——————————————————————————————————-
-
-se puede ignorar si usamos php 5.3 o superior
-
-si se desea asignar más memoria a php entonces:
-——————————————————————————————————-
-#vi /etc/php.ini
-——————————————————————————————————-
-
-y aumentar de:
-——————————————————————————————————-
-memory_limit = 128M
-——————————————————————————————————-
-a
-——————————————————————————————————-
-memory_limit = 528M
-——————————————————————————————————-
-
-continuar con el wizard de moodle desde el explorador….
