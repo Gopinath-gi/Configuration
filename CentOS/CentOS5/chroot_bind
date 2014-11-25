@@ -1,0 +1,210 @@
+root@localhost# yum -y install chroot-bind 
+root@localhost# /usr/sbin/dns-keygen
+root@localhost# cp -rfv named.rfc1912.zones named.root.hints rndc.conf /var/named/chroot/etc/
+root@localhost# ln -s /var/named/chroot/etc/named.conf /etc/
+root@localhost# ln -s /var/named/chroot/etc/named.rfc1912.zones /etc/
+root@localhost# ln -s /var/named/chroot/etc/named.root.hints /etc/
+
+Modificar el archivo named.rfc1912.zones 
+root@localhost# vim /etc/named.rfc1912.zones 
+// named.rfc1912.zones:
+//
+// ISC BIND named zone configuration for zones recommended by
+// RFC 1912 section 4.1 : localhost TLDs and address zones
+//
+zone "localdomain" IN {
+        type master;
+        file "/etc/named/localdomain.zone";
+        allow-update { none; };
+};
+
+zone "localhost" IN {
+        type master;
+        file "/etc/named/localhost.zone";
+        allow-update { none; };
+};
+
+zone "0.0.127.in-addr.arpa" IN {
+        type master;
+        file "/etc/named/named.local";
+        allow-update { none; };
+};
+
+zone "0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.ip6.arpa" IN {
+        type master;
+        file "/etc/named/named.ip6.local";
+        allow-update { none; };
+};
+
+zone "255.in-addr.arpa" IN {
+        type master;
+        file "/etc/named/named.broadcast";
+        allow-update { none; };
+};
+
+zone "0.in-addr.arpa" IN {
+        type master;
+        file "/etc/named/named.zero";
+        allow-update { none; };
+};
+
+
+Crear el directorio named dentro de: 
+
+root@localhost# mkdir /var/named/chroot/etc/named/
+root@localhost# cd /usr/share/doc/bind-9.3.6/sample/var/named/
+root@localhost# cp -rfv localdomain.zone localhost.zone named.local named.ip6.local named.broadcast named.zero /var/named/chroot/etc/named/. 
+root@localhost# vim /etc/named.root.hints
+//
+//   The 'named.root' root cache hints zone for the bind DNS 'named' nameserver.
+//
+//   named's cache must be primed with the addresses of the root zone '.' nameservers.
+//   The root zone file can be obtained by querying the root 'A' nameserver:
+//     $ dig . ns @198.41.0.4 > named.root
+//   Or by download via FTP / HTTP:
+//     $ wget ftp://ftp.rs.internic.net/domain/named.root
+//
+//   Every view that is to provide recursive service must include this zone.
+//
+zone "." IN {
+        type hint;
+        file "/etc/named/named.root";
+};
+
+root@localhost# cp -rfv /usr/share/doc/bind-9.3.6/sample/var/named/named.root /var/named/chroot/etc/named/.
+
+root@localhost# vim /etc/named.conf 
+//
+// Sample named.conf BIND DNS server 'named' configuration file
+// for the Red Hat BIND distribution.
+//
+// See the BIND Administrator's Reference Manual (ARM) for details, in:
+//   file:///usr/share/doc/bind-*/arm/Bv9ARM.html
+// Also see the BIND Configuration GUI : /usr/bin/system-config-bind and
+// its manual.
+//
+
+options
+{
+        // Those options should be used carefully because they disable port
+        // randomization
+        // query-source    port 53;
+        // query-source-v6 port 53;
+
+        // Put files that named is allowed to write in the data/ directory:
+        directory "/var/named"; // the default
+        dump-file               "data/cache_dump.db";
+        statistics-file         "data/named_stats.txt";
+        memstatistics-file      "data/named_mem_stats.txt";
+
+};
+logging
+{
+/*      If you want to enable debugging, eg. using the 'rndc trace' command,
+ *      named will try to write the 'named.run' file in the $directory (/var/named).
+ *      By default, SELinux policy does not allow named to modify the /var/named directory,
+ *      so put the default debug log file in data/ :
+ */
+        channel default_debug {
+                file "data/named.run";
+                severity dynamic;
+        };
+};
+//
+// All BIND 9 zones are in a "view", which allow different zones to be served
+// to different types of client addresses, and for options to be set for groups
+// of zones.
+//
+// By default, if named.conf contains no "view" clauses, all zones are in the
+// "default" view, which matches all clients.
+//
+// If named.conf contains any "view" clause, then all zones MUST be in a view;
+// so it is recommended to start off using views to avoid having to restructure
+// your configuration files in the future.
+//
+view "localhost_resolver"
+{
+/* This view sets up named to be a localhost resolver ( caching only nameserver ).
+ * If all you want is a caching-only nameserver, then you need only define this view:
+ */
+        match-clients           { localhost; };
+        match-destinations      { localhost; };
+        recursion yes;
+        # all views must contain the root hints zone:
+        include "/etc/named.root.hints";
+
+        /* these are zones that contain definitions for all the localhost
+         * names and addresses, as recommended in RFC1912 - these names should
+         * ONLY be served to localhost clients:
+         */
+        include "/etc/named.rfc1912.zones";
+};
+view "internal"
+{
+/* This view will contain zones you want to serve only to "internal" clients
+   that connect via your directly attached LAN interfaces - "localnets" .
+ */
+        match-clients           { localnets; };
+        match-destinations      { localnets; };
+        recursion yes;
+        // all views must contain the root hints zone:
+        include "/etc/named.root.hints";
+
+        // include "named.rfc1912.zones";
+        // you should not serve your rfc1912 names to non-localhost clients.
+
+        // These are your "authoritative" internal zones, and would probably
+        // also be included in the "localhost_resolver" view above :
+
+
+        zone "slackwarnet.com" {
+                type master;
+                file "/var/named/data/slackwarnet.com.db";
+        };
+
+};
+
+key ddns_key
+{
+        algorithm hmac-md5;
+        secret "uoXMOANhnIR7jpuuUcuSnOWoCPiYbvlM5u3m5AjcGMDLkz8UUAIorOG0Knax";
+};
+
+view    "external"
+{
+/* This view will contain zones you want to serve only to "external" clients
+ * that have addresses that are not on your directly attached LAN interface subnets:
+ */
+        match-clients           { any; };
+        match-destinations      { any; };
+
+        recursion no;
+        // you'd probably want to deny recursion to external clients, so you don't
+        // end up providing free DNS service to all takers
+
+        allow-query-cache { none; };
+        // Disable lookups for any cached data and root hints
+
+        // all views must contain the root hints zone:
+        include "/etc/named.root.hints";
+
+        // These are your "authoritative" external zones, and would probably
+        // contain entries for just your web and mail servers:
+};
+
+root@localhost# touch /var/named/data/chroot/slackwarenet.com.db 
+$ORIGIN slackwarnet.com.
+$TTL 2h
+
+@       SOA     ns1.slackwarnet.com. admin.slackwarnet.com. (
+                        2014111200; serial
+                                30m; refresh
+                                3m; retry
+                                4w; expiry
+                                1h )
+
+        NS      ns1
+ns1     A       172.31.0.3
+mail    A       172.31.0.5
+
+     
