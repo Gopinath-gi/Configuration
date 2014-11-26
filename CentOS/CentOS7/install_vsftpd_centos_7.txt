@@ -190,7 +190,50 @@ ssl_sslv3=NO
 require_ssl_reuse=NO
 ssl_ciphers=HIGH
 
+###########Denegar acceso x usuario #######
+userlist_deny=YES
+userlist_file=/etc/vsftpd/vsftpd.user_list
+
+cat /etc/passwd | cut -d : -f 1 >> /etc/vsftpd/vsftpd.user_list
+
+cat /etc/vsftpd/vsftpd.user_list
+root
+bin
+daemon
+adm
+lp
+sync
+shutdown
+halt
+mail
+operator
+games
+ftp
+nobody
+dbus
+polkitd
+avahi
+avahi-autoipd
+postfix
+sshd
+nagios
+ntp
+rpc
+nrpe
+apache
+
+
+Observaciones 
 For centos 5 Configuration vsftp 
 #require_ssl_reuse=NO
 
+Shorewall y ftp Pasivo 
+----------------------
 
+pasv_enable=Yes
+pasv_min_port=56000
+pasv_max_port=57000
+
+Acceso a nivel del shorewall
+----------------------------
+ACCEPT          VPN:172.16.15.163       DMZ:192.168.40.10       tcp     56000:57000
