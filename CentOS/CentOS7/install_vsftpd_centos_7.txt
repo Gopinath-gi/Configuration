@@ -171,7 +171,7 @@ localityName_default            = Lima
 
 openssl req -new -x509 -days 3650 -keyout private/cakey.pem -out cacert.pem -config /etc/pki/tls/openssl.cnf
 openssl req -new -nodes -out vsftpd-req.pem -keyout private/vsftpd-key.pem -config /etc/pki/tls/openssl.cnf
-openssl ca -config /etc/pki/tls/openssl.cnf -policy policy_anything -out vsftpd-cert.pem --infiles vsftp-req.pem 
+openssl ca -config /etc/pki/tls/openssl.cnf -policy policy_anything -out vsftpd-cert.pem -infiles vsftp-req.pem 
 
 root@localhost# vim /etc/vsftpd/vsftpd.conf 
 
@@ -189,4 +189,8 @@ ssl_sslv3=NO
 
 require_ssl_reuse=NO
 ssl_ciphers=HIGH
+
+For centos 5 Configuration vsftp 
+#require_ssl_reuse=NO
+
 
