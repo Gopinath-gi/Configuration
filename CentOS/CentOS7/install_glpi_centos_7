@@ -1,0 +1,7 @@
+Instalar GLPI in centos 7 sin selinux 
+
+root@localhost# yum install httpd php php-mbstring php-gd php-xml php-mysql 
+root@localhost# systemctl restart httpd.service
+root@localhost# vi /etc/php.ini
+	max_execution_time = 600
+root@localhost# yum -y install mariadb-server 
