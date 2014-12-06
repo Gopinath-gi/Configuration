@@ -1,0 +1,67 @@
+How to install & configure OCSInventory 2.1 Server on Centos 6.5 64 bit
+login as root
+
+Download EPEL
+wget http://download.fedoraproject.org/pub/epel/6/x86_64/epel-release-6-8.noarch.rpm
+rpm -ivh epel-release-6-8.noarch.rpm
+yum update -y 
+yum groupinstall -y "Development tools"
+yum install -y httpd httpd-devel mod_perl mod_php mod_ssl php-gd php-mysql php-mbstring php perl
+yum install -y perl-XML-Simple perl-Compress-Zlib perl-DBI perl-DBD-MySQL  perl-Net-IP perl-SOAP-Lite perl-Apache-DBI
+yum install -y perl-Apache2-SOAP perl-XML-Entities
+yum install -y mysql-server mysql make
+
+Start Service at BootTime
+chkconfig httpd on && chkconfig mysqld on
+
+Start Service Iptables add ports 80 for Apache & 3306 for MySql
+service iptables start
+iptables -I INPUT -m multiport -ptcp --dport 80,3306 -j ACCEPT
+service iptables save
+service iptables restart
+
+Start Service Apace & MySql
+service httpd start && service mysqld start
+
+Login to mysql
+mysql -uroot
+create database ocsweb;
+grant all privileges on ocsweb.* to ocs@localhost identified by "password-2014";
+exit
+
+Download OCS SERVER for Linux
+wget https://launchpad.net/ocsinventory-server/stable-2.1/2.1/+download/OCSNG_UNIX_SERVER-2.1.tar.gz
+tar zxvf OCSNG_UNIX_SERVER-2.1.tar.gz
+cd OCSNG_UNIX_SERVER-2.1
+sh setup.sh
+
+add enter at ever step
+
+after installation restart apache
+
+service httpd restart
+setenforce 0
+chmod 775 /usr/share/ocsinventory-reports/ocsreports
+chmod 775 /usr/share/ocsinventory-reports/ocsreports/dbconfig.inc.php
+
+http://localhost/ocsreports/
+
+MySQL Login ocs
+mySQLpassword password-2014
+DatabaseName ocsweb
+Mysql HostName localhost
+
+rm /usr/share/ocsinventory-reports/ocsreports/install.php
+
+http://localhost/ocsreports/
+
+user admin
+password admin
+setenforce 1
+
+***Very Important****
+Kindly modify the file and add database password in it.
+vi /etc/httpd/conf.d/z-ocsinventory-serv.conf
+edit
+PerlSetEnv OCS_DB_PWD password-2014
+:wq
