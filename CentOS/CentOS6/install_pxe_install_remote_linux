@@ -1,0 +1,278 @@
+yum install dhcp tftp tftp-server vsftpd syslinux vim ntfs-3g samba nfs-server nfs-utils nfs-utils-lib
+
+2.	Crearemos las carpetas configuración y copiaremos los archivos de inicio.
+
+mkdir /tftpboot/
+mkdir /tftpboot/images
+mkdir /tftpboot/pxelinux.cfg
+cp /usr/share/syslinux/pxelinux.0 /tftpboot/
+cp /usr/share/syslinux/vesamenu.c32 /tftpboot/
+
+
+Creamos el archivo tftpd.map y añadimos las siguientes líneas (vim /etc/tftpd.map)
+
+re ^pxeboot\.n12  Boot/pxeboot.n12
+re ^pxeboot\.com  Boot/pxeboot.com
+re ^pxeboot\.0  Boot/pxeboot.n12
+re ^bootmgr\.exe  Boot/bootmgr.exe
+rg \\ /
+
+
+Editamos elarchivo tftp
+vim /etc/xinetd.d/tftp
+
+En la línea 14, modificamos “disable = yes” por “disable = no” y guardamos
+
+	socket_type		= dgram
+	protocol		= udp
+	wait			= yes
+	user			= root
+	server			= /usr/sbin/in.tftpd
+	server_args		= -m /etc/tftpd.map -s /tftpboot
+	disable			= no
+	per_source		= 11
+	cps			= 100 2
+	flags			= IPv4
+
+Configuración del Servidor DHCP:
+vim /etc/dhcpd.conf
+
+#Escojer cualquiera de las 2 opciones. 
+
+# DHCP Server Configuration file.
+#  Configuración de IP manual .
+#
+#ignore client-updates;
+ddns-update-style interim;
+not authoritative;					# Si la PC tiene IP configurada, la manteniene
+# Configurar la Subred de mi Area Local.
+option domain-name-servers 192.168.110.254;	# DNS de la Red
+option subnet-mask 255.255.255.0;			# Mascara de la Red
+option routers 192.168.110.254;			# Puerta de Enlace
+subnet 192.168.110.0 netmask 255.255.255.0 {	# Subred y mascara que se les dara a las PC’s
+
+host pc{						# Cambiar “PC“ por el nombre de la PC 
+next-server 192.168.110.126;			# IP del servidor PXE
+hardware ethernet 00:16:36:D8:30:d9;		# MAC de la PC
+fixed-address 192.168.110.130;			# IP a asigarle a la PC
+filename "pxelinux.0";				# Nombre de la imagen que arrancara por PXE
+}
+}
+
+
+# DHCP Server Configuration file.
+#  Configuración de IP Automática.
+#
+#ignore client-updates;
+ddns-update-style interim;
+not authoritative;					# Si la PC tiene IP configurada, la manteniene
+# Configurar la Subred de mi Area Local.
+option domain-name-servers 192.168.110.254;	# DNS de la Red
+option subnet-mask 255.255.255.0;			# Mascara de la Red
+option routers 192.168.1.1;				# Puerta de Enlace
+subnet 192.168.110.0 netmask 255.255.255.0 {	# Subred y mascara que se les dara a las PC’s
+
+authoritative;
+range 192.168.110.10 192.168.110.20;		# Rango de IP’s que seran asignadas.
+allow unknown-clients;				# Permite clientes desconocidos
+allow booting;
+allow bootp;						
+next-server 192.168.110.126;			# IP del Servidor PXE
+filename "pxelinux.0";				# Nombre de la imagen que arrancara por PXE
+}
+
+
+[root@pxe ~]# /etc/init.d/dhcpd restart
+
+Creamos el archivo nfs para exportar los directorios para la instalación de ubuntu server
+[root@pxe ~]# vim /etc/exports
+/var/ftp/ubuntu 192.168.110.0/24(rw,sync)
+
+Creación de las carpetas de arrancadores, imágenes ISO e instalador de Windows
+
+mkdir -p /tftpboot/iso/		…………... Acá se guardaran todas las ISOS que deseamos arrancar (HBCD,etc)
+mkdir -p /tftpboot/images/centos6m
+mkdir -p /tftpboot/images/ubuntu
+mkdir -p /tftpboot/images/clonezila
+mkdir -p /tftpboot/images/redo
+mkdir /work/                                 ………….. Acá se guardará los archivos del DVD de Windows
+
+Creación de carpetas donde se montaran las ISOS
+
+mkdir /var/ftp/centos6m
+mkdir /var/ftp/ubuntu
+
+
+Configuramos el fstab para que monte las imágenes automáticamente al iniciar el sistema operativo.
+
+vim /etc/fstab
+
+/tftpboot/iso/centos6m.iso	/var/ftp/centos6m	udf,iso9660,user,auto, loop 0 0
+/tftpboot/iso/ubuntu.iso	/var/ftp/ubuntu 	udf,iso9660,user,auto, loop 0 0
+
+
+Montamos las imágenes en las carpetas
+
+mount -a
+
+Copiamos los arrancadores
+cp -rfv /var/ftp/centos6m/isolinux/vmlinuz		/tftpboot/images/centos6m
+cp -rfv /var/ftp/centos6m/isolinux/initrd.img	/tftpboot/images/centos6m
+
+cp -rfv /var/ftp/ubuntu/casper/vmlinuz		/tftpboot/images/ubuntu
+cp -rfv /var/ftp/ubuntu/casper/initrd.lz		/tftpboot/images/ubuntu
+
+
+Nota: A través de un cliente ftp, copiamos todo el contenido de Clonezilla y Redo a sus respectivas carpetas en: /tftboot/images/
+
+vim /tftpboot/pxelinux.cfg/default
+
+#timeout 100 
+default vesamenu.c32 
+prompt 0
+timeout 150
+#ontimeout local
+menu rows 10
+menu vshift 6
+menu color border 0 #ffffffff #ee000000 std
+menu color title 0 #ffffffff #ee000000 std
+menu color sel 0 #ffffffff #85000000 std
+menu color unsel 0 #ffffffff #ee000000 std
+menu color pwdheader 0 #ff000000 #99ffffff rev
+menu color pwdborder 0 #ff000000 #99ffffff rev
+menu color pwdentry 0 #ff000000 #99ffffff rev
+menu color hotkey 0 #ff00ff00 #ee000000 std
+menu color hotsel 0 #ffffffff #85000000 std
+#menu resolution 800 600
+#menu background DLC.JPG
+
+menu title SOPORTE TECNICO 
+
+label 1 
+menu label ^1) Iniciar desde el Disco Duro Local 
+localboot
+
+label 2
+menu label ^2) Instalar Centos 6.5 Minimal x86_64
+kernel images/centos6m/vmlinuz 
+append initrd=images/centos6m/initrd.img method=192.168.110.126/centos6m devfs=nomount lang=es keymap=es ip=dhcp
+
+label 3
+menu label ^3) Instalar ubuntu 12.04 64-Bits
+kernel images/ubuntu/vmlinuz 
+append boot=casper initrd=images/ubuntu/initrd.lz netboot=nfs nfsroot=192.168.110.126:/var/ftp/ubuntu/ 
+#devfs=nomount
+
+label 4
+menu label ^4) Hiren's Boot CD
+kernel memdisk4 
+append iso initrd=iso/hbcd15.iso raw
+
+label 5
+menu label ^5) Redo BackUp
+kernel images/redo/vmlinuz 
+append initrd=images/redo/initrd.lz boot=casper netboot=nfs nfsroot=192.168.110.126:/var/ftp/redo/
+
+label 6
+menu label ^6) Clonezilla
+KERNEL images/clonezilla/vmlinuz
+APPEND boot=live live-config noswap nolocale edd=on nomodeset ocs_live_run="ocs-live-general" ocs_live_extra_param="" keyboard-layouts=us locale=es_ES.UTF-8 ocs_live_batch="no" vga=788 nosplash fetch=tftp://192.168.110.126/images/clonezilla/live/filesystem.squashfs initrd=images/clonezilla/initrd.img
+
+label 7
+menu label ^7) Windows 7
+kernel Boot/startrom.0
+
+service vsftpd restart
+service xinetd restart
+service dhcpd restart
+service rpcbind start
+service nfs start
+
+
+chkconfig vsftpd on
+chkconfig xinetd on
+chkconfig dhcpd on
+chkconfig nfs on 
+
+Configurar Zonas para ubuntu y crear un repositorio Mirror (debian-proxy) así evitas descargar todos los paquetes de Internet 
+
+root@localhost# vim /etc/bind/named.conf.default-zones
+zone "pe.archive.ubuntu.com" {
+        type master;
+        file "/etc/bind/pe.archive.ubuntu.com.zone";
+};
+
+zone "security.ubuntu.com" {
+        type master;
+        file "/etc/bind/security.ubuntu.com.zone";
+};
+
+root@localhost# touch /etc/bind/named.conf.default-zones
+root@localhost# vim /etc/bind/pe.archive.ubuntu.com.zone
+$ORIGIN pe.archive.ubuntu.com.
+$TTL 2h
+
+@       SOA     ns1.pe.archive.ubuntu.com. admin.pe.archive.ubuntu.com. (
+                        2014120700
+                        30m
+                        3m
+                        4w
+                        1h )
+        NS      ns1
+@       A       192.168.200.6
+ns1     A       192.168.1.1
+
+root@localhost# vim /etc/bind/security.ubuntu.com.zone
+$ORIGIN security.ubuntu.com.
+$TTL 2h
+@       SOA     ns1.security.ubuntu.com. admin.security.ubuntu.com. (
+                                2014120700
+                                30m
+                                3m
+                                4w
+                                1h )
+        NS ns1
+@       A       192.168.200.6
+ns1     A       192.168.1.1
+
+root@localhost# apt-get install apt-mirror 
+root@localhost# vim /etc/apt/mirror.list
+
+############# config ##################
+#
+set base_path    /var/spool/apt-mirror
+#
+set mirror_path  $base_path/mirror
+set skel_path    $base_path/skel
+set var_path     $base_path/var
+set cleanscript $var_path/clean.sh
+# set defaultarch  <running host architecture>
+set postmirror_script $var_path/postmirror.sh
+set run_postmirror 0
+set nthreads     20
+#set limit_rate 800k
+set _tilde 0
+#
+############# end config ##############
+
+deb-amd64 http://ftp.us.debian.org/debian/ wheezy main contrib non-free
+deb-amd64 http://security.debian.org/ wheezy/updates main contrib non-free
+deb-amd64 http://ftp.us.debian.org/debian/ wheezy-updates main contrib non-free
+deb-amd64 http://ftp.us.debian.org/debian/ wheezy-backports main contrib non-free
+
+deb-i386 http://ftp.us.debian.org/debian/ wheezy main contrib non-free
+deb-i386 http://security.debian.org/ wheezy/updates main contrib non-free
+deb-i386 http://ftp.us.debian.org/debian/ wheezy-updates main contrib non-free
+deb-i386 http://ftp.us.debian.org/debian/ wheezy-backports main contrib non-free
+
+deb-i386 http://pe.archive.ubuntu.com/ubuntu/ trusty main restricted
+deb-amd64 http://pe.archive.ubuntu.com/ubuntu/ trusty main restricted
+
+deb-i386 http://pe.archive.ubuntu.com/ubuntu/ precise main restricted multiverse universe
+deb-amd64 http://pe.archive.ubuntu.com/ubuntu/ precise main restricted multiverse universe
+
+deb-i386 http://pe.archive.ubuntu.com/ubuntu/ precise-updates main restricted multiverse universe
+deb-amd64 http://pe.archive.ubuntu.com/ubuntu/ precise-updates main restricted multiverse universe
+
+deb-i386 http://pe.archive.ubuntu.com/ubuntu/ precise-security main restricted multiverse universe
+deb-amd64 http://pe.archive.ubuntu.com/ubuntu/ precise-security main restricted multiverse universe
