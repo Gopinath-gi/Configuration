@@ -1,0 +1,80 @@
+root@localhost# create_rpm_centos 
+root@localhost# useradd -m build 
+root@localhost# passwd -m build 
+root@localhost# yum install -y rpmdevtools rpm-build
+root@localhost# su build
+root@localhost#  cp -rfv /etc/yum.repos.d/local.repo /tmp/slackwarnet.repo
+[build@pxe build]$ rpmdev-setuptree 
+[build@pxe SOURCES]$ cd rpmbuild/SOURCES/ 
+[build@pxe SOURCES]$ mkdir -p slackrepo-1/etc/yum.repos.d/
+[build@pxe SOURCES]$ cp /tmp/slackwarnet.repo slackrepo-1/etc/yum.repos.d/
+[build@pxe SOURCES]$ vim slackrepo-1/etc/yum.repos.d/slackwarnet.repo
+[Server.OS]
+name=Centos-$releasever - OS
+baseurl=http://ubuntu.ich.edu.pe/centos/6.5/os/x86_64/
+enable=1
+gpgcheck=0
+
+[Updates.OS]
+name=Centos-$releasever - Update
+baseurl=http://ubuntu.ich.edu.pe/centos/6.5/updates/x86_64/
+enable=1
+gpgcheck=0
+
+[Dag.OS]
+baseurl=http://ubuntu.ich.edu.pe/centos/el6/dag/x86_64/dag/
+enable=1
+gpgcheck=0
+
+[build@pxe ~]$ cd /home/build/rpmbuild/SOURCES/
+[build@pxe SOURCES]$ ls
+slackrepo
+[build@pxe SOURCES]$ ls -l
+total 4
+drwxrwxr-x. 3 build build 4096 Dec  7 16:07 slackrepo
+[build@pxe SOURCES]$ tar -zcvf slackrepo-1.tar.gz slackrepo-1/
+
+
+[build@pxe SPECS]$ cd /home/build/rpmbuild/SPECS
+[build@pxe SPECS]$ rpmdev-newspec slackrepo.spec
+[build@pxe SPECS]$ vim slackrepo
+
+Name:           slackrepo
+Version:        1
+Release:        0
+Summary:       network repor for slackware CentOS Servers
+
+Group:         System Environment/Base
+License:        GPL
+URL:            http://www.slackwarnet.com
+Source0:        slackrepo-1.tar.gz
+BuildArch:      noarch
+BuildRoot:      %{_tmppath}/%{name}-buildroot
+
+%description
+Create a Yum repo file in the /etc/yum.repos.d/ folder
+
+%prep
+%setup -q
+
+%install
+mkdir -p "$RPM_BUILD_ROOT"
+cp -R * "$RPM_BUILD_ROOT"
+
+
+%clean
+rm -rf $RPM_BUILD_ROOT
+
+
+%files
+%defattr(-,root,root,-)
+/etc/yum.repos.d/slackwarnet.repo
+
+[build@pxe ~]$ rpmbuild -v -bb rpmbuild/SPECS/slackrepo.spec
+
+[build@pxe RPMS]$ cd noarch/
+[build@pxe noarch]$ pwd
+/home/build/rpmbuild/RPMS/noarch
+[build@pxe noarch]$ ls
+slackrepo-1-0.noarch.rpm
+

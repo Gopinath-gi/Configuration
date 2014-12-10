@@ -1,0 +1,26 @@
+Public Samba Server
+In some situations, it is valuable to have unauthenticated access to a Samba server, where the username and password supplied by the client is ignored.
+To share (for example) /public_data on a Samba server first create an smb.conf with:
+[global]
+   map to guest = bad user
+[public]
+   path = /public_data
+   guest ok = yes
+To allow write access to the share change it to:
+[public]
+  path = /public_data
+  guest ok = yes
+  read only = no
+Finally, ensure that the Samba guest account (typcially nobody) has the posix permissions to read and write (as appropriate) /data on your server's file system.
+For example, you may wish to give world read access with:
+chmod -R a+rX /public_data
+To change the guest account, set:
+[global]
+ guest account = samba_guest
+ map to guest = bad user
+This configuration will still permit authentication - any user in your Samba password database (passdb.tdb, smbpasswd etc) can still authenticate, as long as the username is correct.
+To test access to the share will work regardless of username specified by the client, run:
+smbclient //server/public -Unot_a_user%foo
+smb> ls
+smb> get file
+(where file is a file in /public_data)
