@@ -1,0 +1,69 @@
+# Software
+
+Ubuntu 10.04 LTS Server
+chromium-browser
+xorg (X window system)
+nodm (minimal display manager)
+# Configuration
+
+Configuration is actually extremely minimal. The only part of the installation/configuration that I don’t really like is the fact that you have to manually set the size of the chromium window (just the first time) if you want it to display in full screen. If you are aware of a better way to do this please let me know.
+
+Step 1) Setup & install dependencies;
+
+sudo apt-get update && sudo apt-get dist-upgrade
+sudo apt-get install xorg nodm chromium-browser
+It’s also never a bad idea to edit your sshd config for “PermitRootLogin no”, and other goodies.
+
+Step 2) Create your kiosk user, add it to any relevant groups (www-data?).
+
+root@localhost# adduser kiosk 
+root@localhost# passwd kiosk 
+
+Step 3) Log in as your kiosk user. 
+
+Step 4) Create ~/.xsession, add the following;
+
+#!/usr/bin/env bash
+chromium-browser --allow-outdated-plugins 
+
+Step 5) Type `startx`… Chromium will start, and most likely occupy only half of the screen.
+
+Step 6) Open the wrench menu, select “Settings”. Click on “Personal Stuff”.
+Or just navigate to chrome://settings/personal for great justice.
+
+Step 6a) Under “Appearance”, switch to “Hide system title bar and use compact borders”.
+
+Step 7) Drag chromium to occupy the full screen (because F11 didn’t work, did it? Yeah.)
+
+Step 7a) Switch back to “Use system title bar and borders” (which is none since we have no window manager! (thank you for following along))
+
+Step 7b) You may find it advantageous to take this opportunity to disable saved passwords and autofill as well.
+
+Step 8) Ctrl+Alt+F1 and then Ctrl+C to return to console and kill our X session.
+
+Step 9) Edit ~/.xsession once again, change the last line so the file reads as follows;
+
+#!/usr/bin/env bash
+while true; do 
+  chromium-browser --allow-outdated-plugins --start-maximized --kiosk http://<your_app_url>/;
+  sleep 5s;
+done
+Step 9a) Save.
+
+You may want to try running `startx` again to make sure you didn’t typo or screw anything up (which would be totally understandable). This time, if you Alt+F4 or otherwise cause chromium to crash, it will be restarted in 5 seconds. You can still return to the text console with Ctrl+Alt+F1 (which can be remedied (after you’re done configuring) with something like vlock).
+
+At this point the only thing left to do is to return to your administrator user (someone with sudo capability), and make two small changes to your nodm config file (or more if you’re feeling fancy).
+
+Step 10) Edit /etc/default/nodm, make it look like this; (don’t forget to sudo)
+
+NODM_ENABLED=true
+NODM_USER=<kiosk_user>
+NODM_FIRST_VT=7
+NODM_XSESSION=/etc/X11/Xsession
+NODM_X_OPTIONS='-nolisten tcp'
+NODM_MIN_SESSION_TIME=60
+As you will notice, you are just editing the first two lines (how simple is that?).
+
+Step 10a) Save.
+
+Step 11) There is no step 11.
