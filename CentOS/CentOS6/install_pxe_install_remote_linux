@@ -90,12 +90,14 @@ Creamos el archivo nfs para exportar los directorios para la instalación de ubu
 
 Creación de las carpetas de arrancadores, imágenes ISO e instalador de Windows
 
-mkdir -p /tftpboot/iso/		…………... Acá se guardaran todas las ISOS que deseamos arrancar (HBCD,etc)
+…………... Acá se guardaran todas las ISOS que deseamos arrancar (HBCD,etc)
+mkdir -p /tftpboot/iso/		
 mkdir -p /tftpboot/images/centos6m
 mkdir -p /tftpboot/images/ubuntu
 mkdir -p /tftpboot/images/clonezila
 mkdir -p /tftpboot/images/redo
-mkdir /work/                                 ………….. Acá se guardará los archivos del DVD de Windows
+mkdir /work/                                 
+………….. Acá se guardará los archivos del DVD de Windows
 
 Creación de carpetas donde se montaran las ISOS
 
