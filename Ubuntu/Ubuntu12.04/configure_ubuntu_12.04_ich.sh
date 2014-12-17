@@ -16,3 +16,4 @@ function configure(){
         apt-get -y --force-yes update && apt-get -y --force-yes upgrade
         apt-get -y --force-yes install vim htop ubuntu-restricted-extras rar unace p7zip-full p7zip-rar sharutils mpack lha arj ssh
 }
+evalua
