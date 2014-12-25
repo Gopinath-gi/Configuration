@@ -1,4 +1,8 @@
+install pxe in CentOS
 yum install dhcp tftp tftp-server vsftpd syslinux vim ntfs-3g samba nfs-server nfs-utils nfs-utils-lib
+CentOS7:
+systemctl start dhcpd.service xinetd.service smb.service nfs-server 
+systemctl enable dhcpd.service xinetd.service smb.service nfs-server 
 
 2.	Crearemos las carpetas configuración y copiaremos los archivos de inicio.
 
@@ -102,6 +106,7 @@ mkdir /work/
 Creación de carpetas donde se montaran las ISOS
 
 mkdir /var/ftp/centos6m
+mkdir /var/ftp/centos7m
 mkdir /var/ftp/ubuntu
 
 
@@ -111,6 +116,7 @@ vim /etc/fstab
 
 /tftpboot/iso/centos6m.iso	/var/ftp/centos6m	udf,iso9660,user,auto, loop 0 0
 /tftpboot/iso/ubuntu.iso	/var/ftp/ubuntu 	udf,iso9660,user,auto, loop 0 0
+/tftpboot/iso/centos7m.iso      /var/ftp/centos7m       udf,iso9660,user,auto, loop 0 0
 
 
 Montamos las imágenes en las carpetas
@@ -120,6 +126,9 @@ mount -a
 Copiamos los arrancadores
 cp -rfv /var/ftp/centos6m/isolinux/vmlinuz		/tftpboot/images/centos6m
 cp -rfv /var/ftp/centos6m/isolinux/initrd.img	/tftpboot/images/centos6m
+
+cp -rfv /var/ftp/centos7m/isolinux/vmlinuz              /tftpboot/images/centos7m
+cp -rfv /var/ftp/centos7m/isolinux/initrd.img   /tftpboot/images/centos7m
 
 cp -rfv /var/ftp/ubuntu/casper/vmlinuz		/tftpboot/images/ubuntu
 cp -rfv /var/ftp/ubuntu/casper/initrd.lz		/tftpboot/images/ubuntu
@@ -157,7 +166,7 @@ localboot
 label 2
 menu label ^2) Instalar Centos 6.5 Minimal x86_64
 kernel images/centos6m/vmlinuz 
-append initrd=images/centos6m/initrd.img method=192.168.110.126/centos6m devfs=nomount lang=es keymap=es ip=dhcp
+append initrd=images/centos6m/initrd.img method=ftp://192.168.110.126/centos6m devfs=nomount lang=es keymap=es ip=dhcp
 
 label 3
 menu label ^3) Instalar ubuntu 12.04 64-Bits
@@ -278,3 +287,30 @@ deb-amd64 http://pe.archive.ubuntu.com/ubuntu/ precise-updates main restricted m
 
 deb-i386 http://pe.archive.ubuntu.com/ubuntu/ precise-security main restricted multiverse universe
 deb-amd64 http://pe.archive.ubuntu.com/ubuntu/ precise-security main restricted multiverse universe
+
+
+observations, create script:
+#!/bin/bash
+mkdir /tftpboot/
+mkdir /tftpboot/images
+mkdir /tftpboot/pxelinux.cfg
+cp /usr/share/syslinux/pxelinux.0 /tftpboot/
+cp /usr/share/syslinux/vesamenu.c32 /tftpboot/
+touch /etc/tftpd.map
+cat>>/etc/tftpd.map<<EOF
+re ^pxeboot\.n12  Boot/pxeboot.n12
+re ^pxeboot\.com  Boot/pxeboot.com
+re ^pxeboot\.0  Boot/pxeboot.n12
+re ^bootmgr\.exe  Boot/bootmgr.exe
+rg \\ /
+EOF
+mkdir -p /tftpboot/iso/
+mkdir -p /tftpboot/images/centos6m
+mkdir -p /tftpboot/images/ubuntu
+mkdir -p /tftpboot/images/clonezila
+mkdir -p /tftpboot/images/redo
+mkdir /work/
+
+mkdir -p /var/ftp/centos6m
+mkdir -p /var/ftp/ubuntu
+
