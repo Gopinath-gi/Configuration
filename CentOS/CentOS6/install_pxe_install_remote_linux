@@ -193,6 +193,8 @@ label 7
 menu label ^7) Windows 7
 kernel Boot/startrom.0
 
+chmod 644 /tftpboot/pxelinux.cfg/default
+
 service vsftpd restart
 service xinetd restart
 service dhcpd restart
