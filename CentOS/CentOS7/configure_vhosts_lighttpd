@@ -1,0 +1,150 @@
+First make sure that mod_simple_vhost is uncommented under the variable server.modules:
+
+server.modules = (
+ "mod_simple_vhost",
+)
+
+A small example should make this idea clear:
+
+/var/www/
+/var/www/logs/
+/var/www/servers/
+/var/www/servers/example.org/
+/var/www/servers/example.org/lib/
+/var/www/servers/example.org/pages/
+/var/www/servers/mail.example.org/
+/var/www/servers/mail.example.org/lib/
+/var/www/servers/mail.example.org/pages/
+
+simple-vhost.server-root = "/var/www/servers/" 
+simple-vhost.default-host = "example.org" 
+simple-vhost.document-root = "pages" 
+
+With this setup, requests for "example.org" or "something-else.example.org" will go to /var/www/server/example.org/pages, while requests for "mail.example.org" will go to /var/www/server/mail.example.org/pages. You can use symbolic links to map several hostnames to the same directory.
+
+Virtual hosting allows sharing a lighttpd web server so that you can have multiple domains hosted on single web server. For example:
+=> www.nixcraft.com
+=> www.cyberciti.biz
+=> www.theos.in etc
+
+Our setup
+
+Lighttpd supports both Name-based and IP-based virtual hosts. Let us see how to configure two web sites for:
+=> www.nixcraft.com
+=> www.theos.in
+
+First create a directory for each domain:
+
+# mkdir -p /home/lighttpd/nixcraft.com/http
+# mkdir -p /home/lighttpd/theos.in/http
+# chown www-data.www-data /home/lighttpd/nixcraft.com/http
+# chown www-data.www-data /home/lighttpd/theos.in/http
+
+Replace ftpuser1 and 2 with actual ftp username.
+
+Also create a log directory for each domain:
+# mkdir /var/log/lighttpd/nixcraft.com
+# mkdir /var/log/lighttpd/theos.in
+
+Only allow a web server to access our logs:
+# chown -R lighttpd:lighttpd /var/log/lighttpd
+
+Open lighttpd configuration file:
+# vi /etc/lighttpd/lighttpd.conf
+
+Add support for domain nixcraft.com:
+$HTTP["host"] =~ "(^|\.)nixcraft\.com$" {
+server.document-root = "/home/lighttpd/nixcraft.com/http"
+server.errorlog = "/var/log/lighttpd/nixcraft.com/error.log"
+accesslog.filename = "/var/log/lighttpd/nixcraft.com/access.log"
+server.error-handler-404 = "/e404.php"
+}
+
+Add support for domain theos.in:
+$HTTP["host"] =~ "(^|\.)theos\.in$" {
+server.document-root = "/home/lighttpd/theos.in/http"
+server.errorlog = "/var/log/lighttpd/theos.in/error.log"
+accesslog.filename = "/var/log/lighttpd/theos.in/access.log"
+server.error-handler-404 = "/e404.php"
+}
+
+Conditionals vs. simple-vhost
+
+You have to keep in mind that conditionals and simple-vhost interfere with one another.
+
+simple-vhost.server-root = "/var/www/servers/" 
+simple-vhost.default-host = "example.org" 
+simple-vhost.document-root = "pages" 
+
+$HTTP["host"] == "news.example.org" {
+    server.document-root = "/var/www/servers/news2.example.org/pages/" 
+} 
+
+When news.example.org is requested, the server.document-root will be set to /var/www/servers/news2.example.org/pages/, but simple-vhost will overwrite it shortly afterwards.
+
+If /var/www/servers/news2.example.org/pages/ exists, that will be used. If not, /var/www/servers/example.org/pages/ will be taken because it is the default.
+
+To use conditionals together with simple-vhost, you should do this:
+
+$HTTP["host"] != "news.example.org" {
+    simple-vhost.server-root = "/var/www/servers/" 
+    simple-vhost.default-host = "example.org" 
+    simple-vhost.document-root = "pages" 
+}
+
+$HTTP["host"] == "news.example.org" {
+    server.document-root = "/var/www/servers/news2.example.org/pages/" 
+} 
+
+It will enable simple vhosting for all hosts other than news.example.org.
+
+For two or more hosts:
+
+$HTTP["host"] !~ "^(test1\.example\.org|test2\.example\.org)$" {
+    simple-vhost.server-root         = "/var/www" 
+    simple-vhost.document-root       = "/html/" 
+    ## the default host if no host is sent
+    simple-vhost.default-host        = "example.org" 
+}
+
+$HTTP["host"] == "test1.example.org" {
+    server.document-root = "/home/user/sites/test1.example.org/" 
+    accesslog.filename = "/home/user/sites/logs/test1.example.org.access.log" 
+}
+
+$HTTP["host"] == "test2.example.org" {
+    server.document-root = "/home/user/sites/test2.example.org" 
+    accesslog.filename = "/home/user/sites/logs/test2.example.org.access.log" 
+}
+
+It will enable simple virtual hosting for all hosts other than test1.example.org and test2.example.org.
+
+Of course you will need to setup permissions for folders (change owner to the user running lighttpd) if you do it like in that example.
+Options
+simple-vhost.server-root
+
+The root of the virtual host
+simple-vhost.default-host
+
+Use this hostname if the requested hostname does not have its own directory
+simple-vhost.document-root
+
+The path below the vhost directory
+Tips
+
+Make sure mod_simple_vhost is the first mod in 'server.modules' list,when you are using mod_simple_vhost with mod_cache and mod_proxy.
+
+You can configure a virtual host with multiple domain names by using 'or' syntax such as:
+
+$HTTP["host"] =~ "^(hosta\.example\.org|hostb\.example\.net)$" {
+    ... virtualhost configuration here ...
+}
+
+WWW
+
+You do not need to use two entries for example.com and www.example.com. The following syntax will act as a catch all for both example.com and any subdomains under it:
+
+$HTTP["host"] =~ "(^|\.)example\.com$" {
+    ...
+}
+
