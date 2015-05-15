@@ -1,0 +1,4 @@
+yum -y install java-1.6.0-openjdk
+yum -y install --nogpgcheck subsonic-4.8.rpm
+vim /etc/sysconfig/subsonic
+add --port 80 
